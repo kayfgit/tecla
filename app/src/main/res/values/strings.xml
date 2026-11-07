@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Blend Keyboard</string>
+    <string name="subtype_en_us">English (US)</string>
+    <string name="setup_title">Blend Keyboard</string>
+    <string name="status_enabled">✓ Blend is enabled. Tap “Switch keyboard” to use it.</string>
+    <string name="status_disabled">Step 1: enable Blend in your keyboard settings.</string>
+    <string name="enable_button">1. Enable in settings</string>
+    <string name="choose_button">2. Switch keyboard</string>
+    <string name="try_hint">Try it here…</string>
+    <string name="guide_title">Gestures</string>
+    <string name="guide_body">• Space bar: slide left or right, or long-press it, to move the cursor like arrow keys. Drag up and down for lines. While moving, tap with a second finger to start or stop selecting text.\n• Delete: tap to delete a letter. Hold to repeat (switches to whole words after a moment).\n• Delete, swipe left: delete words backwards (keep dragging for more).\n• Delete, swipe right: delete words forwards.\n• Delete, swipe up: delete letters forwards (keep dragging for more).\n• Delete, swipe down: delete back to the start of the line.\n• Shift: tap for one capital, double-tap for caps lock. Hold shift while typing for capitals.\n• Double-tap space to type a period.\n• Globe: tap to switch keyboard, hold to pick one.</string>
+</resources>

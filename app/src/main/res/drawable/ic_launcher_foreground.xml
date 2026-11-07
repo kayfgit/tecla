@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A simple keyboard: rounded body with three rows of keys and a space bar. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30,38h48a4,4 0 0 1 4,4v24a4,4 0 0 1 -4,4h-48a4,4 0 0 1 -4,-4v-24a4,4 0 0 1 4,-4z" />
+    <path
+        android:fillColor="#FF007AFF"
+        android:pathData="M32,43h6v5h-6zM41,43h6v5h-6zM50,43h6v5h-6zM59,43h6v5h-6zM68,43h8v5h-8zM34,51h6v5h-6zM43,51h6v5h-6zM52,51h6v5h-6zM61,51h6v5h-6zM70,51h6v5h-6zM40,60h28v5h-28z" />
+</vector>
