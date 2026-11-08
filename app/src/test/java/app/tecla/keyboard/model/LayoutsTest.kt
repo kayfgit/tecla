@@ -50,10 +50,27 @@ class LayoutsTest {
     }
 
     @Test
-    fun `touch in the gap next to shift picks the closer key`() {
-        // Shift spans 0..130, gap 130..150, z starts at 150.
-        assertEquals(KeyAction.Shift, geometry.keyAt(135f, 225f)?.key?.action)
-        assertEquals("z", geometry.keyAt(147f, 225f)?.key?.label)
+    fun `shift and delete are wide keys at the row ends`() {
+        // Shift spans 0..150, z 150..250, delete 850..1000.
+        assertEquals(KeyAction.Shift, geometry.keyAt(149f, 225f)?.key?.action)
+        assertEquals("z", geometry.keyAt(151f, 225f)?.key?.label)
+        assertEquals(KeyAction.Delete, geometry.keyAt(851f, 225f)?.key?.action)
+    }
+
+    @Test
+    fun `gap keys take space but are never hit`() {
+        val layout = KeyboardLayout(
+            KeyboardPage.LETTERS,
+            listOf(
+                KeyRow(
+                    listOf(Key(KeyAction.Text("a"), "a", 4f), Key(KeyAction.Gap, "", 2f, KeyStyle.GAP), Key(KeyAction.Text("b"), "b", 4f))
+                )
+            )
+        )
+        val g = KeyboardGeometry(layout, width = 1000f, top = 0f, sidePadding = 0f, rowHeight = 50f)
+        assertEquals("a", g.keyAt(450f, 25f)?.key?.label)
+        assertEquals("b", g.keyAt(550f, 25f)?.key?.label)
+        assertEquals(600f, g.keys.last().cell.left)
     }
 
     @Test

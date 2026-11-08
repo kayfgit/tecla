@@ -43,9 +43,7 @@ const val UNITS_PER_ROW = 10f
 object Layouts {
     private fun chars(s: String, width: Float = 1f): List<Key> = s.map { Key(KeyAction.Text(it.toString()), it.toString(), width) }
 
-    private fun gap(width: Float) = Key(KeyAction.Gap, "", width, KeyStyle.GAP)
-
-    private val delete = Key(KeyAction.Delete, "delete", 1.3f, KeyStyle.FUNCTION)
+    private val delete = Key(KeyAction.Delete, "delete", 1.5f, KeyStyle.FUNCTION)
 
     private fun bottomRow(pageKey: Key) = KeyRow(
         listOf(
@@ -62,16 +60,16 @@ object Layouts {
             KeyRow(chars("qwertyuiop")),
             KeyRow(chars("asdfghjkl"), inset = 0.5f),
             KeyRow(
-                listOf(Key(KeyAction.Shift, "shift", 1.3f, KeyStyle.FUNCTION), gap(0.2f)) +
+                listOf(Key(KeyAction.Shift, "shift", 1.5f, KeyStyle.FUNCTION)) +
                     chars("zxcvbnm") +
-                    listOf(gap(0.2f), delete)
+                    listOf(delete)
             ),
             bottomRow(Key(KeyAction.Page(KeyboardPage.NUMBERS), "123", 1.25f, KeyStyle.FUNCTION))
         )
     )
 
     private fun punctuationRow(pageKey: Key) = KeyRow(
-        listOf(pageKey, gap(0.2f)) + chars(".,?!'", 1.4f) + listOf(gap(0.2f), delete)
+        listOf(pageKey) + chars(".,?!'", 1.4f) + listOf(delete)
     )
 
     private val abc = Key(KeyAction.Page(KeyboardPage.LETTERS), "ABC", 1.25f, KeyStyle.FUNCTION)
@@ -81,7 +79,7 @@ object Layouts {
         listOf(
             KeyRow(chars("1234567890")),
             KeyRow(chars("-/:;()$&@\"")),
-            punctuationRow(Key(KeyAction.Page(KeyboardPage.SYMBOLS), "#+=", 1.3f, KeyStyle.FUNCTION)),
+            punctuationRow(Key(KeyAction.Page(KeyboardPage.SYMBOLS), "#+=", 1.5f, KeyStyle.FUNCTION)),
             bottomRow(abc)
         )
     )
@@ -91,7 +89,7 @@ object Layouts {
         listOf(
             KeyRow(chars("[]{}#%^*+=")),
             KeyRow(chars("_\\|~<>€£¥•")),
-            punctuationRow(Key(KeyAction.Page(KeyboardPage.NUMBERS), "123", 1.3f, KeyStyle.FUNCTION)),
+            punctuationRow(Key(KeyAction.Page(KeyboardPage.NUMBERS), "123", 1.5f, KeyStyle.FUNCTION)),
             bottomRow(abc)
         )
     )

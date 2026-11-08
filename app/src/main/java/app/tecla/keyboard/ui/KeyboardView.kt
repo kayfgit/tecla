@@ -65,7 +65,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     /** Y offset where the keyboard background starts; everything above it is see-through. */
     val keysTop: Int get() = previewSpace.toInt()
 
-    private var theme = KeyboardTheme.LIGHT
+    private var theme = KeyboardTheme.BLACKOUT
     private var layout: KeyboardLayout = Layouts.letters
     private var geometry: KeyboardGeometry? = null
     private var shiftMode = ShiftMode.OFF
@@ -210,35 +210,87 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         }
     }
 
+    /**
+     * Delete key in the Unexpected Keyboard style: a big backspace in the middle and small icons on
+     * each side showing the swipe directions (word back, word forward, letter forward, line back).
+     */
     private fun drawDelete(canvas: Canvas, r: RectF, color: Int, pressed: Boolean) {
-        val w = min(dp(24f), r.width() * 0.55f)
-        val h = w * 0.72f
         val cx = r.centerX()
         val cy = r.centerY()
-        val left = cx - w / 2
-        val right = cx + w / 2
-        path.reset()
-        path.moveTo(left, cy)
-        path.lineTo(left + h / 2, cy - h / 2)
-        path.lineTo(right, cy - h / 2)
-        path.lineTo(right, cy + h / 2)
-        path.lineTo(left + h / 2, cy + h / 2)
-        path.close()
-        strokePaint.color = color
+        val oldWidth = strokePaint.strokeWidth
+
+        // Main backspace icon.
+        val w = min(dp(21f), r.width() * 0.4f)
+        val h = w * 0.7f
+        tagPath(cx, cy, w, h, pointLeft = true)
         if (pressed) {
             fillPaint.color = color
             canvas.drawPath(path, fillPaint)
-            strokePaint.color = theme.key
-        } else {
-            canvas.drawPath(path, strokePaint)
         }
-        val xc = left + h / 2 + (right - left - h / 2) / 2
-        val d = h * 0.2f
-        canvas.drawLine(xc - d, cy - d, xc + d, cy + d, strokePaint)
-        canvas.drawLine(xc - d, cy + d, xc + d, cy - d, strokePaint)
-        // Faint hints for the swipe directions: words back / words forward.
-        drawLabel(canvas, "«", r.left + dp(7f), cy, sp(11f), theme.hint, false)
-        drawLabel(canvas, "»", r.right - dp(7f), cy, sp(11f), theme.hint, false)
+        strokePaint.color = color
+        canvas.drawPath(path, strokePaint)
+        drawCross(canvas, cx + h * 0.2f, cy, h * 0.2f, if (pressed) theme.functionKey else color)
+
+        // Side hints.
+        strokePaint.strokeWidth = dp(1f)
+        val sw = dp(12f)
+        val sh = dp(9f)
+        val hint = theme.hint
+        strokePaint.color = hint
+        val leftX = r.left + dp(3f) + sw / 2
+        tagPath(leftX, cy, sw, sh, pointLeft = true)
+        canvas.drawPath(path, strokePaint)
+        drawLabel(canvas, "W", leftX + sh * 0.15f, cy, sp(6.5f), hint, true)
+
+        val rightX = r.right - dp(3f) - sw / 2
+        tagPath(rightX, cy, sw, sh, pointLeft = false)
+        canvas.drawPath(path, strokePaint)
+        drawLabel(canvas, "W", rightX - sh * 0.15f, cy, sp(6.5f), hint, true)
+
+        val topY = r.top + dp(6.5f)
+        tagPath(cx, topY, dp(11f), dp(8f), pointLeft = false)
+        canvas.drawPath(path, strokePaint)
+        drawCross(canvas, cx - dp(1.2f), topY, dp(1.6f), hint)
+
+        // Line back: an arrow pointing to a bar.
+        val botY = r.bottom - dp(6.5f)
+        canvas.drawLine(cx - dp(5f), botY - dp(3.5f), cx - dp(5f), botY + dp(3.5f), strokePaint)
+        canvas.drawLine(cx - dp(3.5f), botY, cx + dp(5f), botY, strokePaint)
+        canvas.drawLine(cx - dp(3.5f), botY, cx - dp(1f), botY - dp(2.5f), strokePaint)
+        canvas.drawLine(cx - dp(3.5f), botY, cx - dp(1f), botY + dp(2.5f), strokePaint)
+        strokePaint.strokeWidth = oldWidth
+    }
+
+    /** Builds a backspace-style tag shape (a box with one pointed end) into [path]. */
+    private fun tagPath(cx: Float, cy: Float, w: Float, h: Float, pointLeft: Boolean) {
+        val l = cx - w / 2
+        val r = cx + w / 2
+        val t = cy - h / 2
+        val b = cy + h / 2
+        val tip = h / 2
+        path.reset()
+        if (pointLeft) {
+            path.moveTo(l, cy)
+            path.lineTo(l + tip, t)
+            path.lineTo(r, t)
+            path.lineTo(r, b)
+            path.lineTo(l + tip, b)
+        } else {
+            path.moveTo(r, cy)
+            path.lineTo(r - tip, t)
+            path.lineTo(l, t)
+            path.lineTo(l, b)
+            path.lineTo(r - tip, b)
+        }
+        path.close()
+    }
+
+    private fun drawCross(canvas: Canvas, cx: Float, cy: Float, d: Float, color: Int) {
+        val old = strokePaint.color
+        strokePaint.color = color
+        canvas.drawLine(cx - d, cy - d, cx + d, cy + d, strokePaint)
+        canvas.drawLine(cx - d, cy + d, cx + d, cy - d, strokePaint)
+        strokePaint.color = old
     }
 
     private fun drawGlobe(canvas: Canvas, cx: Float, cy: Float, color: Int) {
@@ -307,8 +359,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         var lastX = startX
         var lastY = startY
         var mode = Mode.PRESS
-        val deleteTracker = DeleteGestureTracker(dp(18f), dp(32f))
-        val trackpad = TrackpadAccumulator(dp(9f), dp(34f))
+        val deleteTracker = DeleteGestureTracker(dp(18f))
+        val trackpad = TrackpadAccumulator(dp(15f), dp(40f))
         var repeatCount = 0
         var pending: Runnable? = null
     }
@@ -385,14 +437,12 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     cancelPending(p)
                     enterCursorMode(p)
                 }
-                KeyAction.Delete -> {
-                    val n = p.deleteTracker.update(x - p.startX, y - p.startY)
-                    val op = p.deleteTracker.op
-                    if (op != null) {
-                        cancelPending(p)
-                        p.mode = Mode.DELETE_GESTURE
-                        performDelete(op, n)
-                    }
+                KeyAction.Delete -> if (p.deleteTracker.update(x - p.startX, y - p.startY)) {
+                    // Swipe chosen: delete once now, then repeat like a held key while the finger stays out.
+                    cancelPending(p)
+                    p.mode = Mode.DELETE_GESTURE
+                    p.deleteTracker.op?.let { performDelete(it, 1) }
+                    if (p.deleteTracker.repeats) schedule(p, DELETE_REPEAT_DELAY_MS) { swipeRepeat(p) }
                 }
                 is KeyAction.Text -> {
                     val pk = geometry().keyAt(x, y)
@@ -404,10 +454,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                 val steps = p.trackpad.move(x - p.lastX, y - p.lastY)
                 if (!steps.isZero) listener.onCursorMove(steps.x, steps.y, selecting)
             }
-            Mode.DELETE_GESTURE -> {
-                val op = p.deleteTracker.op ?: return
-                performDelete(op, p.deleteTracker.update(x - p.startX, y - p.startY))
-            }
+            Mode.DELETE_GESTURE -> p.deleteTracker.update(x - p.startX, y - p.startY)
             else -> Unit
         }
         p.lastX = x
@@ -471,6 +518,14 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         if (words) haptic(HapticFeedbackConstants.CLOCK_TICK)
         schedule(p, if (words) WORD_REPEAT_INTERVAL_MS else CHAR_REPEAT_INTERVAL_MS) { deleteRepeat(p) }
         invalidate()
+    }
+
+    /** A held delete swipe repeats with the same timing as holding the delete key. */
+    private fun swipeRepeat(p: Pointer) {
+        val op = p.deleteTracker.op ?: return
+        if (p.deleteTracker.engaged) performDelete(op, 1)
+        val interval = if (op == DeleteOp.CHAR_FORWARD) CHAR_REPEAT_INTERVAL_MS else WORD_REPEAT_INTERVAL_MS
+        schedule(p, interval) { swipeRepeat(p) }
     }
 
     private fun schedule(p: Pointer, delayMs: Long, block: () -> Unit) {

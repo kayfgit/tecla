@@ -1,35 +1,41 @@
 package app.tecla.keyboard.logic
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GesturesTest {
-    private fun tracker() = DeleteGestureTracker(threshold = 10f, step = 20f)
+    private fun tracker() = DeleteGestureTracker(threshold = 10f)
 
     @Test
     fun `small movement is not a gesture`() {
         val t = tracker()
-        assertEquals(0, t.update(-5f, 3f))
+        assertFalse(t.update(-5f, 3f))
         assertNull(t.op)
+        assertFalse(t.engaged)
     }
 
     @Test
-    fun `swipe left deletes words and repeats with distance`() {
+    fun `swipe left chooses word back exactly once`() {
         val t = tracker()
-        assertEquals(1, t.update(-12f, 0f))
+        assertTrue(t.update(-12f, 0f))
         assertEquals(DeleteOp.WORD_BACK, t.op)
-        assertEquals(0, t.update(-25f, 0f))
-        assertEquals(1, t.update(-31f, 0f))
-        assertEquals(2, t.update(-71f, 0f))
+        // Dragging further never fires again by distance; repeating is time-based.
+        assertFalse(t.update(-80f, 0f))
+        assertFalse(t.update(-200f, 0f))
     }
 
     @Test
-    fun `dragging back never undoes or repeats`() {
+    fun `engaged follows whether the finger is still out past the threshold`() {
         val t = tracker()
-        t.update(-31f, 0f)
-        assertEquals(0, t.update(-5f, 0f))
-        assertEquals(0, t.update(-31f, 0f))
+        t.update(-12f, 0f)
+        assertTrue(t.engaged)
+        t.update(-4f, 0f)
+        assertFalse(t.engaged)
+        t.update(-30f, 0f)
+        assertTrue(t.engaged)
     }
 
     @Test
@@ -40,10 +46,12 @@ class GesturesTest {
     }
 
     @Test
-    fun `line delete happens only once`() {
-        val t = tracker()
-        assertEquals(1, t.update(0f, 15f))
-        assertEquals(0, t.update(0f, 100f))
+    fun `line delete does not repeat but the others do`() {
+        val line = tracker().apply { update(0f, 15f) }
+        assertFalse(line.repeats)
+        val word = tracker().apply { update(-15f, 0f) }
+        assertTrue(word.repeats)
+        assertFalse(tracker().repeats)
     }
 
     @Test
@@ -52,11 +60,12 @@ class GesturesTest {
         t.update(-12f, 0f)
         t.update(0f, 80f)
         assertEquals(DeleteOp.WORD_BACK, t.op)
+        assertFalse(t.engaged)
     }
 
     private fun assertOp(expected: DeleteOp, dx: Float, dy: Float) {
         val t = tracker()
-        assertEquals(1, t.update(dx, dy))
+        assertTrue(t.update(dx, dy))
         assertEquals(expected, t.op)
     }
 
