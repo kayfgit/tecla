@@ -1,4 +1,4 @@
-package app.blend.keyboard.ui
+package app.tecla.keyboard.ui
 
 /** iPhone-like keyboard colors (ARGB). */
 data class KeyboardTheme(

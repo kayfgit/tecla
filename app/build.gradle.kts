@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "app.blend.keyboard"
+    namespace = "app.tecla.keyboard"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "app.blend.keyboard"
+        applicationId = "app.tecla.keyboard"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

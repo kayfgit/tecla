@@ -1,4 +1,4 @@
-package app.blend.keyboard.logic
+package app.tecla.keyboard.logic
 
 import kotlin.math.abs
 import kotlin.math.floor

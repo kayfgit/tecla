@@ -1,4 +1,4 @@
-package app.blend.keyboard
+package app.tecla.keyboard
 
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
@@ -11,16 +11,16 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
-import app.blend.keyboard.logic.DeleteOp
-import app.blend.keyboard.logic.ShiftController
-import app.blend.keyboard.logic.TextEdits
-import app.blend.keyboard.model.KeyboardPage
-import app.blend.keyboard.model.Layouts
-import app.blend.keyboard.ui.KeyboardTheme
-import app.blend.keyboard.ui.KeyboardView
+import app.tecla.keyboard.logic.DeleteOp
+import app.tecla.keyboard.logic.ShiftController
+import app.tecla.keyboard.logic.TextEdits
+import app.tecla.keyboard.model.KeyboardPage
+import app.tecla.keyboard.model.Layouts
+import app.tecla.keyboard.ui.KeyboardTheme
+import app.tecla.keyboard.ui.KeyboardView
 import kotlin.math.abs
 
-class BlendImeService :
+class TeclaImeService :
     InputMethodService(),
     KeyboardView.Listener {
 

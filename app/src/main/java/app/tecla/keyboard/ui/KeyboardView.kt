@@ -1,4 +1,4 @@
-package app.blend.keyboard.ui
+package app.tecla.keyboard.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -13,18 +13,18 @@ import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
-import app.blend.keyboard.logic.DeleteGestureTracker
-import app.blend.keyboard.logic.DeleteOp
-import app.blend.keyboard.logic.ShiftMode
-import app.blend.keyboard.logic.TrackpadAccumulator
-import app.blend.keyboard.model.Box
-import app.blend.keyboard.model.KeyAction
-import app.blend.keyboard.model.KeyStyle
-import app.blend.keyboard.model.KeyboardGeometry
-import app.blend.keyboard.model.KeyboardLayout
-import app.blend.keyboard.model.KeyboardPage
-import app.blend.keyboard.model.Layouts
-import app.blend.keyboard.model.PlacedKey
+import app.tecla.keyboard.logic.DeleteGestureTracker
+import app.tecla.keyboard.logic.DeleteOp
+import app.tecla.keyboard.logic.ShiftMode
+import app.tecla.keyboard.logic.TrackpadAccumulator
+import app.tecla.keyboard.model.Box
+import app.tecla.keyboard.model.KeyAction
+import app.tecla.keyboard.model.KeyStyle
+import app.tecla.keyboard.model.KeyboardGeometry
+import app.tecla.keyboard.model.KeyboardLayout
+import app.tecla.keyboard.model.KeyboardPage
+import app.tecla.keyboard.model.Layouts
+import app.tecla.keyboard.model.PlacedKey
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min

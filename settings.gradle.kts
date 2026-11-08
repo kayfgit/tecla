@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BlendKeyboard"
+rootProject.name = "Tecla"
 include(":app")

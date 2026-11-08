@@ -1,4 +1,4 @@
-package app.blend.keyboard.logic
+package app.tecla.keyboard.logic
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

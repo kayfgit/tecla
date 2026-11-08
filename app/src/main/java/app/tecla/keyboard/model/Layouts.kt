@@ -1,4 +1,4 @@
-package app.blend.keyboard.model
+package app.tecla.keyboard.model
 
 /** What a key does when it is activated. */
 sealed interface KeyAction {

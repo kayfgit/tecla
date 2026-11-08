@@ -1,4 +1,4 @@
-package app.blend.keyboard.model
+package app.tecla.keyboard.model
 
 import kotlin.math.abs
 import kotlin.math.min

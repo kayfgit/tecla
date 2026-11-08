@@ -9,7 +9,7 @@ All notable changes to this project are documented here. The format follows
 ## [0.1.0] - 2026-11-06
 
 ### Added
-- First demo of Blend Keyboard, an Android keyboard (input method).
+- First demo of Tecla, an Android keyboard (input method).
 - iPhone-style layout and look: QWERTY letters, "123" and "#+=" pages, globe,
   space and return keys, light and dark themes that follow the system.
 - Key-press balloons, haptic feedback, and fast two-thumb typing (a key is

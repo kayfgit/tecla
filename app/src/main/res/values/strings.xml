@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Blend Keyboard</string>
+    <string name="app_name">Tecla</string>
     <string name="subtype_en_us">English (US)</string>
-    <string name="setup_title">Blend Keyboard</string>
-    <string name="status_enabled">✓ Blend is enabled. Tap “Switch keyboard” to use it.</string>
-    <string name="status_disabled">Step 1: enable Blend in your keyboard settings.</string>
+    <string name="setup_title">Tecla</string>
+    <string name="status_enabled">✓ Tecla is enabled. Tap “Switch keyboard” to use it.</string>
+    <string name="status_disabled">Step 1: enable Tecla in your keyboard settings.</string>
     <string name="enable_button">1. Enable in settings</string>
     <string name="choose_button">2. Switch keyboard</string>
     <string name="try_hint">Try it here…</string>

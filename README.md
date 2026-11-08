@@ -1,4 +1,4 @@
-# Blend Keyboard
+# Tecla
 
 An Android keyboard that combines the best parts of the iPhone keyboard, Samsung
 Keyboard and Unexpected Keyboard.
@@ -21,7 +21,7 @@ Requires JDK 17 and the Android SDK (platform 34).
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Then open **Blend Keyboard** on the phone, enable it, and switch to it.
+Then open **Tecla** on the phone, enable it, and switch to it.
 
 ## Checks
 
@@ -36,4 +36,4 @@ Use `./gradlew ktlintFormat` to auto-format.
 - `model/` – key layouts and touch geometry (pure Kotlin, unit-tested).
 - `logic/` – shift, text-deletion rules and gesture trackers (pure Kotlin, unit-tested).
 - `ui/KeyboardView.kt` – drawing and touch handling.
-- `BlendImeService.kt` – the input method service that talks to apps.
+- `TeclaImeService.kt` – the input method service that talks to apps.

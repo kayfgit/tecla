@@ -1,4 +1,4 @@
-package app.blend.keyboard.logic
+package app.tecla.keyboard.logic
 
 /** Pure text rules used by the delete key and the space bar. */
 object TextEdits {
