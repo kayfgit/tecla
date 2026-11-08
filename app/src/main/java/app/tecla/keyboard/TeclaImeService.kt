@@ -1,6 +1,5 @@
 package app.tecla.keyboard
 
-import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.SystemClock
@@ -59,11 +58,6 @@ class TeclaImeService :
         super.onFinishInputView(finishingInput)
     }
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        applyTheme()
-    }
-
     override fun onUpdateSelection(
         oldSelStart: Int,
         oldSelEnd: Int,
@@ -96,10 +90,8 @@ class TeclaImeService :
 
     // ---------------------------------------------------------------- state
 
-    private fun isDarkMode() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-
     private fun applyTheme() {
-        val theme = if (isDarkMode()) KeyboardTheme.DARK else KeyboardTheme.LIGHT
+        val theme = KeyboardTheme.BLACKOUT
         keyboardView?.setTheme(theme)
         window?.window?.navigationBarColor = theme.background
     }

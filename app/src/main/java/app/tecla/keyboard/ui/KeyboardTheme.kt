@@ -12,6 +12,18 @@ data class KeyboardTheme(
     val hint: Int
 ) {
     companion object {
+        /** Pure black background with dark keys; the default theme. */
+        val BLACKOUT = KeyboardTheme(
+            background = 0xFF000000.toInt(),
+            key = 0xFF1C1C1E.toInt(),
+            functionKey = 0xFF0E0E0F.toInt(),
+            keyText = 0xFFFFFFFF.toInt(),
+            shadow = 0xFF000000.toInt(),
+            accent = 0xFF0A84FF.toInt(),
+            accentText = 0xFFFFFFFF.toInt(),
+            hint = 0xFF8E8E93.toInt()
+        )
+
         val LIGHT = KeyboardTheme(
             background = 0xFFD1D4DA.toInt(),
             key = 0xFFFFFFFF.toInt(),

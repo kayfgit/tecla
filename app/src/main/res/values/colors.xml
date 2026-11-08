@@ -1,3 +1,10 @@
 <resources>
-    <color name="ic_launcher_background">#FF007AFF</color>
+    <color name="ic_launcher_background">#FF000000</color>
+    <color name="black">#FF000000</color>
+    <color name="accent">#FF0A84FF</color>
+    <color name="selection">#800A84FF</color>
+    <color name="field_background">#FF1C1C1E</color>
+    <color name="field_border">#FF3A3A3C</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FF8E8E93</color>
 </resources>
