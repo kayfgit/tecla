@@ -20,13 +20,7 @@ data class PlacedKey(val key: Key, val cell: Box, val row: Int)
  * Lays out a [KeyboardLayout] into pixel cells and finds the key under a touch.
  * Touches in gaps or past the edges go to the nearest key in the touched row.
  */
-class KeyboardGeometry(
-    val layout: KeyboardLayout,
-    width: Float,
-    private val top: Float,
-    sidePadding: Float,
-    private val rowHeight: Float
-) {
+class KeyboardGeometry(val layout: KeyboardLayout, width: Float, private val top: Float, sidePadding: Float, private val rowHeight: Float) {
     val keys: List<PlacedKey>
     val height: Float = layout.rows.size * rowHeight
 
