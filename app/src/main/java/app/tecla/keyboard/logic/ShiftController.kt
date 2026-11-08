@@ -3,41 +3,31 @@ package app.tecla.keyboard.logic
 enum class ShiftMode { OFF, ONCE, LOCKED }
 
 /**
- * iPhone-style shift: tap for one capital, double-tap for caps lock, tap again to turn off.
- * Holding shift while typing capitalizes every letter typed during the hold.
+ * Shift cycles on every tap, however fast you tap: off → one capital → caps lock → off.
+ * Holding shift while typing capitalizes the letters typed during the hold, then turns shift off.
  */
-class ShiftController(private val doubleTapWindowMs: Long = 350L) {
+class ShiftController {
     var mode: ShiftMode = ShiftMode.OFF
         private set
 
     private var held = false
     private var typedWhileHeld = false
-    private var lastPressAt: Long? = null
-    private var lastPressUnlocked = false
 
     val isUpperCase: Boolean get() = held || mode != ShiftMode.OFF
 
-    fun onPress(now: Long) {
-        val previous = lastPressAt
-        val isDoubleTap = previous != null && now - previous <= doubleTapWindowMs && !lastPressUnlocked
-        lastPressUnlocked = false
-        mode = when {
-            isDoubleTap -> ShiftMode.LOCKED
-            mode == ShiftMode.OFF -> ShiftMode.ONCE
-            mode == ShiftMode.LOCKED -> {
-                lastPressUnlocked = true
-                ShiftMode.OFF
-            }
-            else -> ShiftMode.OFF
+    fun onPress() {
+        mode = when (mode) {
+            ShiftMode.OFF -> ShiftMode.ONCE
+            ShiftMode.ONCE -> ShiftMode.LOCKED
+            ShiftMode.LOCKED -> ShiftMode.OFF
         }
-        lastPressAt = now
         held = true
         typedWhileHeld = false
     }
 
     fun onRelease() {
         held = false
-        if (typedWhileHeld && mode != ShiftMode.LOCKED) mode = ShiftMode.OFF
+        if (typedWhileHeld) mode = ShiftMode.OFF
         typedWhileHeld = false
     }
 
@@ -59,7 +49,5 @@ class ShiftController(private val doubleTapWindowMs: Long = 350L) {
         mode = ShiftMode.OFF
         held = false
         typedWhileHeld = false
-        lastPressAt = null
-        lastPressUnlocked = false
     }
 }

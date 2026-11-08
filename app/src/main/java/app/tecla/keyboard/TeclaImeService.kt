@@ -314,7 +314,7 @@ class TeclaImeService :
     }
 
     override fun onShiftDown() {
-        shift.onPress(SystemClock.uptimeMillis())
+        shift.onPress()
         render()
     }
 
