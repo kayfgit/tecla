@@ -9,7 +9,9 @@ data class KeyboardTheme(
     val shadow: Int,
     val accent: Int,
     val accentText: Int,
-    val hint: Int
+    val hint: Int,
+    /** Accent marks in key corners: brighter than other hints so they are easy to tell apart. */
+    val accentHint: Int
 ) {
     companion object {
         /** Pure black background with dark keys; the default theme. */
@@ -21,7 +23,8 @@ data class KeyboardTheme(
             shadow = 0xFF000000.toInt(),
             accent = 0xFF0A84FF.toInt(),
             accentText = 0xFFFFFFFF.toInt(),
-            hint = 0xFF8E8E93.toInt()
+            hint = 0xFF8E8E93.toInt(),
+            accentHint = 0xFFD1D1D6.toInt()
         )
 
         val LIGHT = KeyboardTheme(
@@ -32,7 +35,8 @@ data class KeyboardTheme(
             shadow = 0xFF898A8D.toInt(),
             accent = 0xFF007AFF.toInt(),
             accentText = 0xFFFFFFFF.toInt(),
-            hint = 0x66000000
+            hint = 0x66000000,
+            accentHint = 0xCC000000.toInt()
         )
 
         val DARK = KeyboardTheme(
@@ -43,7 +47,8 @@ data class KeyboardTheme(
             shadow = 0xFF000000.toInt(),
             accent = 0xFF0A84FF.toInt(),
             accentText = 0xFFFFFFFF.toInt(),
-            hint = 0x80FFFFFF.toInt()
+            hint = 0x80FFFFFF.toInt(),
+            accentHint = 0xE6FFFFFF.toInt()
         )
     }
 }

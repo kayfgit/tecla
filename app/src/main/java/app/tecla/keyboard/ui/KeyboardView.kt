@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Handler
@@ -78,6 +79,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         strokeCap = Paint.Cap.ROUND
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val textBounds = Rect()
     private val rect = RectF()
     private val path = Path()
 
@@ -187,6 +189,10 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
 
     /** Small hint for a corner swipe, Unexpected Keyboard style. Active modifiers light up. */
     private fun drawCorner(canvas: Canvas, r: RectF, corner: Corner, action: KeyAction) {
+        if (action is KeyAction.Dead) {
+            drawAccentHint(canvas, r, corner, action)
+            return
+        }
         val label = cornerLabel(action)
         val word = label.length > 2
         val size = sp(if (word) 9.5f else 11f)
@@ -197,6 +203,24 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         val x = if (left) r.left + inset else r.right - inset
         val y = if (top) r.top + dp(8f) else r.bottom - dp(8f)
         drawLabel(canvas, label, x, y, size, color, align = if (left) Paint.Align.LEFT else Paint.Align.RIGHT)
+    }
+
+    /**
+     * Accent hints are drawn as large, bold, bright marks (´ ` ^ ~ ¸ ˇ ¯ ¨) centered on their visible
+     * shape, so they are easy to tell apart at arm's length.
+     */
+    private fun drawAccentHint(canvas: Canvas, r: RectF, corner: Corner, action: KeyAction.Dead) {
+        val mark = action.accent.spacing
+        textPaint.textSize = sp(20f)
+        textPaint.typeface = Typeface.DEFAULT_BOLD
+        textPaint.textAlign = Paint.Align.LEFT
+        textPaint.color = if (isCornerActive(action)) theme.accent else theme.accentHint
+        textPaint.getTextBounds(mark, 0, mark.length, textBounds)
+        val left = corner == Corner.TOP_LEFT || corner == Corner.BOTTOM_LEFT
+        val top = corner == Corner.TOP_LEFT || corner == Corner.TOP_RIGHT
+        val cx = if (left) r.left + dp(8f) else r.right - dp(8f)
+        val cy = if (top) r.top + dp(8f) else r.bottom - dp(8f)
+        canvas.drawText(mark, cx - textBounds.exactCenterX(), cy - textBounds.exactCenterY(), textPaint)
     }
 
     private fun drawLabel(
