@@ -35,6 +35,42 @@ class LayoutsTest {
         }
     }
 
+    private fun letterKey(c: String) = Layouts.letters.rows.flatMap { it.keys }.first { it.label == c }
+
+    @Test
+    fun `accent dead keys sit under letters like unexpected keyboard`() {
+        assertEquals(KeyAction.Dead(Accent.ACUTE), letterKey("s").corners[Corner.BOTTOM_RIGHT])
+        assertEquals(KeyAction.Dead(Accent.TILDE), letterKey("f").corners[Corner.BOTTOM_RIGHT])
+        assertEquals(KeyAction.Dead(Accent.CEDILLA), letterKey("g").corners[Corner.BOTTOM_RIGHT])
+        assertEquals(KeyAction.Dead(Accent.DIAERESIS), letterKey("u").corners[Corner.TOP_LEFT])
+        assertTrue(letterKey("q").corners.isEmpty())
+    }
+
+    @Test
+    fun `bottom row has 123 with ctrl and Fn with alt, keyboard, emoji and settings`() {
+        for (layout in all) {
+            val bottom = layout.rows.last().keys
+            assertEquals(KeyAction.Ctrl, bottom[0].corners[Corner.BOTTOM_RIGHT])
+            val fn = bottom[1]
+            assertEquals(KeyAction.Fn, fn.action)
+            assertEquals(
+                mapOf(
+                    Corner.TOP_LEFT to KeyAction.Alt,
+                    Corner.TOP_RIGHT to KeyAction.SwitchKeyboard,
+                    Corner.BOTTOM_LEFT to KeyAction.Emoji,
+                    Corner.BOTTOM_RIGHT to KeyAction.Settings
+                ),
+                fn.corners
+            )
+        }
+    }
+
+    @Test
+    fun `fn page has all twelve F keys and the arrows`() {
+        val specials = Layouts.fn.rows.flatMap { it.keys }.mapNotNull { (it.action as? KeyAction.Special)?.key }
+        assertTrue(specials.containsAll(SpecialKey.entries))
+    }
+
     private val geometry = KeyboardGeometry(Layouts.letters, width = 1000f, top = 100f, sidePadding = 0f, rowHeight = 50f)
 
     @Test

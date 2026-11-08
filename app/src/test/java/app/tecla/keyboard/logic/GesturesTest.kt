@@ -1,5 +1,6 @@
 package app.tecla.keyboard.logic
 
+import app.tecla.keyboard.model.Corner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -75,6 +76,19 @@ class GesturesTest {
         assertEquals(CursorSteps(0, 0), pad.move(6f, 0f))
         assertEquals(CursorSteps(1, 0), pad.move(6f, 0f))
         assertEquals(CursorSteps(-1, 1), pad.move(-12f, 31f))
+    }
+
+    @Test
+    fun `short swipes point at no corner`() {
+        assertNull(cornerOf(5f, 5f, threshold = 10f))
+    }
+
+    @Test
+    fun `swipes point at the matching corner`() {
+        assertEquals(Corner.TOP_LEFT, cornerOf(-10f, -10f, threshold = 10f))
+        assertEquals(Corner.TOP_RIGHT, cornerOf(10f, -10f, threshold = 10f))
+        assertEquals(Corner.BOTTOM_LEFT, cornerOf(-10f, 10f, threshold = 10f))
+        assertEquals(Corner.BOTTOM_RIGHT, cornerOf(12f, 2f, threshold = 10f))
     }
 
     @Test

@@ -1,7 +1,20 @@
 package app.tecla.keyboard.logic
 
+import app.tecla.keyboard.model.Corner
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.max
+
+/** The corner a swipe of ([dx], [dy]) points at, or null if it is shorter than [threshold]. */
+fun cornerOf(dx: Float, dy: Float, threshold: Float): Corner? {
+    if (hypot(dx, dy) < threshold) return null
+    return when {
+        dx < 0 && dy < 0 -> Corner.TOP_LEFT
+        dx >= 0 && dy < 0 -> Corner.TOP_RIGHT
+        dx < 0 -> Corner.BOTTOM_LEFT
+        else -> Corner.BOTTOM_RIGHT
+    }
+}
 
 enum class DeleteOp { CHAR_BACK, CHAR_FORWARD, WORD_BACK, WORD_FORWARD, LINE_BACK }
 
