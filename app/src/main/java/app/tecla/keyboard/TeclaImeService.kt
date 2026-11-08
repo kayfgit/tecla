@@ -107,7 +107,9 @@ class TeclaImeService :
         super.onComputeInsets(outInsets)
         val view = keyboardView ?: return
         val decor = window?.window?.decorView ?: return
-        if (isFullscreenMode || !view.isShown) return
+        // Check the container, not the keys: the keys are INVISIBLE (but still laid out) while emoji are shown.
+        val root = view.parent as? View ?: return
+        if (isFullscreenMode || !root.isShown) return
         val loc = IntArray(2)
         view.getLocationInWindow(loc)
         val top = loc[1] + view.keysTop

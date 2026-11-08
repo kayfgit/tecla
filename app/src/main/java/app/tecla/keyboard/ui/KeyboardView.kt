@@ -161,7 +161,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             KeyAction.Enter -> drawLabel(canvas, state.enterLabel, cx, cy, sp(16f), fg)
             KeyAction.Fn -> drawLabel(canvas, key.label, cx, cy, sp(16f), if (state.layout.page == KeyboardPage.FN) theme.accent else fg)
             is KeyAction.Text -> drawLabel(canvas, letterCase(key.label), cx, cy, sp(23f), fg)
-            is KeyAction.Special -> drawLabel(canvas, key.label, cx, cy, sp(if (action.key.label.length > 2) 13f else 18f), fg)
+            is KeyAction.Special -> drawLabel(canvas, key.label, cx, cy, sp(if (action.key.label.length > 3) 13f else 17f), fg)
             else -> drawLabel(canvas, key.label, cx, cy, sp(16f), fg)
         }
         for ((corner, cornerAction) in key.corners) drawCorner(canvas, r, corner, cornerAction)
