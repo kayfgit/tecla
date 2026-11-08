@@ -193,12 +193,16 @@ class TeclaImeService :
 
     // ---------------------------------------------------------------- key events
 
-    private fun sendKey(code: Int, meta: Int = 0) {
+    private fun sendKeyEvent(action: Int, code: Int, meta: Int) {
         val ic = currentInputConnection ?: return
         val now = SystemClock.uptimeMillis()
         val flags = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0, meta, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, flags))
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, code, 0, meta, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, flags))
+        ic.sendKeyEvent(KeyEvent(now, now, action, code, 0, meta, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, flags))
+    }
+
+    private fun sendKey(code: Int, meta: Int = 0) {
+        sendKeyEvent(KeyEvent.ACTION_DOWN, code, meta)
+        sendKeyEvent(KeyEvent.ACTION_UP, code, meta)
     }
 
     /** Returns the meta state for the latched Ctrl/Alt modifiers and releases them (they are one-shot). */
@@ -394,11 +398,15 @@ class TeclaImeService :
     }
 
     override fun onCursorMove(dx: Int, dy: Int, selecting: Boolean) {
-        val meta = if (selecting) KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON else 0
+        val meta = if (selecting) SHIFT_META else 0
         val h = if (dx < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
         val v = if (dy < 0) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN
+        // Text fields only extend the selection while they see Shift held down (a Shift flag on the
+        // arrow key alone is ignored), so press and release a real Shift key around the arrows.
+        if (selecting) sendKeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT, SHIFT_META)
         repeat(abs(dx)) { sendKey(h, meta) }
         repeat(abs(dy)) { sendKey(v, meta) }
+        if (selecting) sendKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT, 0)
     }
 
     // ---------------------------------------------------------------- emoji pane
@@ -419,5 +427,6 @@ class TeclaImeService :
     private companion object {
         const val CONTEXT_CHARS = 2000
         const val CTRL_META = KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+        const val SHIFT_META = KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
     }
 }
