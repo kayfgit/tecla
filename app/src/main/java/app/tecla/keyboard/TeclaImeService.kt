@@ -28,7 +28,6 @@ class TeclaImeService :
     private var page = KeyboardPage.LETTERS
     private var selStart = 0
     private var selEnd = 0
-    private var lastSpaceAt = 0L
 
     override fun onCreateInputView(): View = KeyboardView(this, this).also {
         keyboardView = it
@@ -47,7 +46,6 @@ class TeclaImeService :
         if (!restarting) shift.reset()
         selStart = info.initialSelStart
         selEnd = info.initialSelEnd
-        lastSpaceAt = 0L
         applyTheme()
         refreshAutoCaps()
         render()
@@ -154,7 +152,6 @@ class TeclaImeService :
         val out = if (shift.isUpperCase && page == KeyboardPage.LETTERS) text.uppercase() else text
         ic.commitText(out, 1)
         shift.onCharacterTyped()
-        lastSpaceAt = 0L
         if (page != KeyboardPage.LETTERS && text == "'") page = KeyboardPage.LETTERS
         render()
     }
@@ -171,18 +168,7 @@ class TeclaImeService :
 
     override fun onSpace() {
         val ic = currentInputConnection ?: return
-        val now = SystemClock.uptimeMillis()
-        val quickSecondTap = lastSpaceAt != 0L && now - lastSpaceAt < DOUBLE_SPACE_WINDOW_MS
-        if (quickSecondTap && isProseField(currentInputEditorInfo) && TextEdits.shouldInsertPeriod(ic.getTextBeforeCursor(3, 0))) {
-            ic.beginBatchEdit()
-            ic.deleteSurroundingText(1, 0)
-            ic.commitText(". ", 1)
-            ic.endBatchEdit()
-            lastSpaceAt = 0L
-        } else {
-            ic.commitText(" ", 1)
-            lastSpaceAt = now
-        }
+        ic.commitText(" ", 1)
         if (page != KeyboardPage.LETTERS) page = KeyboardPage.LETTERS
         render()
     }
@@ -190,7 +176,6 @@ class TeclaImeService :
     override fun onEnter() {
         val ic = currentInputConnection ?: return
         val info = currentInputEditorInfo
-        lastSpaceAt = 0L
         val action = info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
         val noEnterAction = info == null || info.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
         when {
@@ -203,7 +188,6 @@ class TeclaImeService :
 
     override fun onDelete(op: DeleteOp, count: Int) {
         val ic = currentInputConnection ?: return
-        lastSpaceAt = 0L
         if (op == DeleteOp.CHAR_BACK) {
             repeat(count) { sendKey(KeyEvent.KEYCODE_DEL) }
             return
@@ -271,7 +255,6 @@ class TeclaImeService :
     }
 
     private companion object {
-        const val DOUBLE_SPACE_WINDOW_MS = 700L
         const val CONTEXT_CHARS = 2000
     }
 }
