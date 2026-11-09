@@ -17,6 +17,7 @@ import android.view.View
 import app.tecla.keyboard.logic.CursorSpeed
 import app.tecla.keyboard.logic.DeleteGestureTracker
 import app.tecla.keyboard.logic.DeleteOp
+import app.tecla.keyboard.logic.RepeatTiming
 import app.tecla.keyboard.logic.ShiftMode
 import app.tecla.keyboard.logic.TrackpadAccumulator
 import app.tecla.keyboard.logic.cornerOf
@@ -582,22 +583,23 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         invalidate()
     }
 
-    /** Holding delete repeats characters, then switches to whole words (like iPhone). */
+    /** Holding delete repeats letters, speeding up the longer it is held (like the Samsung keyboard). */
     private fun deleteRepeat(p: Pointer) {
         if (p.mode != Mode.PRESS && p.mode != Mode.DELETE_REPEAT) return
         p.mode = Mode.DELETE_REPEAT
         p.repeatCount++
-        val words = p.repeatCount > WORD_REPEAT_AFTER
-        listener.onDelete(if (words) DeleteOp.WORD_BACK else DeleteOp.CHAR_BACK, 1)
-        if (words) haptic(HapticFeedbackConstants.CLOCK_TICK)
-        schedule(p, if (words) WORD_REPEAT_INTERVAL_MS else CHAR_REPEAT_INTERVAL_MS) { deleteRepeat(p) }
+        listener.onDelete(DeleteOp.CHAR_BACK, 1)
+        schedule(p, RepeatTiming.deleteInterval(p.repeatCount)) { deleteRepeat(p) }
     }
 
-    /** A held delete swipe repeats with the same timing as holding the delete key. */
+    /** A held delete swipe repeats: letters forward speed up like holding delete, words at a steady pace. */
     private fun swipeRepeat(p: Pointer) {
         val op = p.deleteTracker.op ?: return
-        if (p.deleteTracker.engaged) performDelete(op, 1)
-        val interval = if (op == DeleteOp.CHAR_FORWARD) CHAR_REPEAT_INTERVAL_MS else WORD_REPEAT_INTERVAL_MS
+        if (p.deleteTracker.engaged) {
+            performDelete(op, 1)
+            p.repeatCount++
+        }
+        val interval = if (op == DeleteOp.CHAR_FORWARD) RepeatTiming.deleteInterval(p.repeatCount) else WORD_REPEAT_INTERVAL_MS
         schedule(p, interval) { swipeRepeat(p) }
     }
 
@@ -616,7 +618,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         if (p.mode != Mode.PRESS && p.mode != Mode.KEY_REPEAT) return
         p.mode = Mode.KEY_REPEAT
         listener.onAction(action)
-        schedule(p, CHAR_REPEAT_INTERVAL_MS) { keyRepeat(p, action) }
+        schedule(p, RepeatTiming.KEY_INTERVAL_MS) { keyRepeat(p, action) }
     }
 
     private fun schedule(p: Pointer, delayMs: Long, block: () -> Unit) {
@@ -643,10 +645,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
 
     private companion object {
         const val ROWS = 4
-        const val REPEAT_DELAY_MS = 400L
-        const val CHAR_REPEAT_INTERVAL_MS = 55L
+        const val REPEAT_DELAY_MS = RepeatTiming.START_DELAY_MS
         const val WORD_REPEAT_INTERVAL_MS = 230L
-        const val WORD_REPEAT_AFTER = 18
         const val SPACE_LONG_PRESS_MS = 350L
         const val LONG_PRESS_MS = 450L
     }
