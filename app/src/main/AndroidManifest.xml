@@ -10,7 +10,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Blend">
+        android:theme="@style/Theme.Tecla">
 
         <activity
             android:name=".SetupActivity"
@@ -23,7 +23,7 @@
         </activity>
 
         <service
-            android:name=".BlendImeService"
+            android:name=".TeclaImeService"
             android:exported="true"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_INPUT_METHOD">

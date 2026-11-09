@@ -42,10 +42,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:autofillHints=""
+            android:background="@drawable/test_field_background"
             android:gravity="top"
             android:hint="@string/try_hint"
             android:inputType="textMultiLine|textCapSentences"
-            android:minLines="4" />
+            android:minLines="5"
+            android:padding="14dp"
+            android:textColor="@color/text_primary"
+            android:textColorHighlight="@color/selection"
+            android:textColorHint="@color/text_secondary"
+            android:textCursorDrawable="@drawable/test_field_cursor"
+            android:textSize="18sp" />
 
         <TextView
             android:layout_width="wrap_content"

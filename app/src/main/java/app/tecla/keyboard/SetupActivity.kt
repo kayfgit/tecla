@@ -1,4 +1,4 @@
-package app.blend.keyboard
+package app.tecla.keyboard
 
 import android.app.Activity
 import android.content.Intent

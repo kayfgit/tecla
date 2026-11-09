@@ -1,4 +1,4 @@
-package app.blend.keyboard.ui
+package app.tecla.keyboard.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -13,18 +13,18 @@ import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
-import app.blend.keyboard.logic.DeleteGestureTracker
-import app.blend.keyboard.logic.DeleteOp
-import app.blend.keyboard.logic.ShiftMode
-import app.blend.keyboard.logic.TrackpadAccumulator
-import app.blend.keyboard.model.Box
-import app.blend.keyboard.model.KeyAction
-import app.blend.keyboard.model.KeyStyle
-import app.blend.keyboard.model.KeyboardGeometry
-import app.blend.keyboard.model.KeyboardLayout
-import app.blend.keyboard.model.KeyboardPage
-import app.blend.keyboard.model.Layouts
-import app.blend.keyboard.model.PlacedKey
+import app.tecla.keyboard.logic.DeleteGestureTracker
+import app.tecla.keyboard.logic.DeleteOp
+import app.tecla.keyboard.logic.ShiftMode
+import app.tecla.keyboard.logic.TrackpadAccumulator
+import app.tecla.keyboard.logic.cornerOf
+import app.tecla.keyboard.model.Box
+import app.tecla.keyboard.model.Corner
+import app.tecla.keyboard.model.KeyAction
+import app.tecla.keyboard.model.KeyStyle
+import app.tecla.keyboard.model.KeyboardGeometry
+import app.tecla.keyboard.model.KeyboardPage
+import app.tecla.keyboard.model.PlacedKey
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -37,15 +37,12 @@ import kotlin.math.min
 class KeyboardView(context: Context, private val listener: Listener) : View(context) {
 
     interface Listener {
-        fun onKeyText(text: String)
+        /** A key (or one of its corners) was activated. */
+        fun onAction(action: KeyAction)
         fun onShiftDown()
         fun onShiftUp()
         fun onDelete(op: DeleteOp, count: Int)
-        fun onSpace()
-        fun onEnter()
-        fun onSwitchKeyboard()
         fun onShowKeyboardPicker()
-        fun onPageChange(page: KeyboardPage)
         fun onCursorMove(dx: Int, dy: Int, selecting: Boolean)
     }
 
@@ -61,17 +58,17 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private val keyGapH = dp(6f)
     private val keyGapV = dp(11f)
     private val keyRadius = dp(5f)
+    private val cornerSwipeThreshold = dp(16f)
 
     /** Y offset where the keyboard background starts; everything above it is see-through. */
     val keysTop: Int get() = previewSpace.toInt()
 
-    private var theme = KeyboardTheme.LIGHT
-    private var layout: KeyboardLayout = Layouts.letters
+    /** Height of the key area below [keysTop]. */
+    val keysHeight: Int get() = (topPadding + ROWS * rowHeight + bottomPadding).toInt()
+
+    private var theme = KeyboardTheme.BLACKOUT
+    private var state = KeyboardState()
     private var geometry: KeyboardGeometry? = null
-    private var shiftMode = ShiftMode.OFF
-    private var upperCase = false
-    private var enterLabel = "return"
-    private var enterAccent = false
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -80,7 +77,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
     }
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val rect = RectF()
     private val path = Path()
 
@@ -91,22 +88,14 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         }
     }
 
-    fun setState(layout: KeyboardLayout, shiftMode: ShiftMode, upperCase: Boolean, enterLabel: String, enterAccent: Boolean) {
-        if (layout !== this.layout) {
-            this.layout = layout
-            geometry = null
-        }
-        this.shiftMode = shiftMode
-        this.upperCase = upperCase
-        this.enterLabel = enterLabel
-        this.enterAccent = enterAccent
+    fun setState(newState: KeyboardState) {
+        if (newState.layout !== state.layout) geometry = null
+        state = newState
         invalidate()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val width = MeasureSpec.getSize(widthMeasureSpec)
-        val height = previewSpace + topPadding + layout.rows.size * rowHeight + bottomPadding
-        setMeasuredDimension(width, height.toInt())
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), keysTop + keysHeight)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -114,7 +103,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     }
 
     private fun geometry(): KeyboardGeometry = geometry ?: KeyboardGeometry(
-        layout,
+        state.layout,
         width.toFloat(),
         previewSpace + topPadding,
         sidePadding,
@@ -129,7 +118,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         val cursorMode = pointers.values.any { it.mode == Mode.CURSOR }
         for (pk in geometry().keys) drawKey(canvas, pk, cursorMode)
         for (p in pointers.values) {
-            if (p.mode == Mode.PRESS && p.key.key.style == KeyStyle.CHARACTER) drawBalloon(canvas, p.key)
+            if (p.mode == Mode.PRESS && p.key.key.style == KeyStyle.CHARACTER) drawBalloon(canvas, p)
         }
     }
 
@@ -140,14 +129,16 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
 
     private fun isPressed(pk: PlacedKey) = pointers.values.any { it.key === pk && it.mode != Mode.DONE }
 
+    private fun letterCase(label: String) = if (state.upperCase && state.layout.page == KeyboardPage.LETTERS) label.uppercase() else label
+
     private fun drawKey(canvas: Canvas, pk: PlacedKey, cursorMode: Boolean) {
         val key = pk.key
         val pressed = isPressed(pk)
-        val shiftActive = key.action == KeyAction.Shift && shiftMode != ShiftMode.OFF
-        val accent = key.style == KeyStyle.ENTER && enterAccent
+        val shiftActive = key.action == KeyAction.Shift && state.shiftMode != ShiftMode.OFF
+        val accent = key.style == KeyStyle.ENTER && state.enterAccent
         val bg = when {
             accent -> if (pressed) theme.functionKey else theme.accent
-            shiftActive -> theme.key
+            shiftActive -> theme.keyText
             key.style == KeyStyle.CHARACTER -> theme.key
             key.style == KeyStyle.SPACE -> if (pressed && !cursorMode) theme.functionKey else theme.key
             else -> if (pressed) theme.key else theme.functionKey
@@ -164,30 +155,72 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         val fg = if (accent) theme.accentText else theme.keyText
         val cx = r.centerX()
         val cy = r.centerY()
-        when (key.action) {
+        when (val action = key.action) {
             KeyAction.Shift -> drawShift(canvas, cx, cy, fg)
             KeyAction.Delete -> drawDelete(canvas, r, fg, pressed)
-            KeyAction.SwitchKeyboard -> drawGlobe(canvas, cx, cy, fg)
-            KeyAction.Enter -> drawLabel(canvas, enterLabel, cx, cy, sp(16f), fg, false)
-            is KeyAction.Text -> {
-                val label = if (upperCase && layout.page == KeyboardPage.LETTERS) key.label.uppercase() else key.label
-                drawLabel(canvas, label, cx, cy, sp(23f), fg, false)
-            }
-            else -> drawLabel(canvas, key.label, cx, cy, sp(16f), fg, false)
+            KeyAction.Enter -> drawLabel(canvas, state.enterLabel, cx, cy, sp(16f), fg)
+            KeyAction.Fn -> drawLabel(canvas, key.label, cx, cy, sp(16f), if (state.layout.page == KeyboardPage.FN) theme.accent else fg)
+            is KeyAction.Text -> drawLabel(canvas, letterCase(key.label), cx, cy, sp(23f), fg)
+            is KeyAction.Special -> drawLabel(canvas, key.label, cx, cy, sp(if (action.key.label.length > 3) 13f else 17f), fg)
+            else -> drawLabel(canvas, key.label, cx, cy, sp(16f), fg)
         }
+        for ((corner, cornerAction) in key.corners) drawCorner(canvas, r, corner, cornerAction)
     }
 
-    private fun drawLabel(canvas: Canvas, text: String, cx: Float, cy: Float, size: Float, color: Int, bold: Boolean) {
+    private fun cornerLabel(action: KeyAction): String = when (action) {
+        is KeyAction.Text -> action.text
+        is KeyAction.Dead -> action.accent.label
+        KeyAction.Ctrl -> "ctrl"
+        KeyAction.Alt -> "alt"
+        KeyAction.SwitchKeyboard -> "⌨︎"
+        KeyAction.Emoji -> "☺︎"
+        KeyAction.Settings -> "⚙︎"
+        else -> ""
+    }
+
+    private fun isCornerActive(action: KeyAction) = when (action) {
+        is KeyAction.Dead -> action.accent == state.pendingAccent
+        KeyAction.Ctrl -> state.ctrl
+        KeyAction.Alt -> state.alt
+        else -> false
+    }
+
+    /** Small hint for a corner swipe, Unexpected Keyboard style. Active modifiers light up. */
+    private fun drawCorner(canvas: Canvas, r: RectF, corner: Corner, action: KeyAction) {
+        val label = cornerLabel(action)
+        val word = label.length > 2
+        val size = sp(if (word) 9.5f else 11f)
+        val color = if (isCornerActive(action)) theme.accent else theme.hint
+        val left = corner == Corner.TOP_LEFT || corner == Corner.BOTTOM_LEFT
+        val top = corner == Corner.TOP_LEFT || corner == Corner.TOP_RIGHT
+        val inset = dp(4f)
+        val x = if (left) r.left + inset else r.right - inset
+        val y = if (top) r.top + dp(8f) else r.bottom - dp(8f)
+        drawLabel(canvas, label, x, y, size, color, align = if (left) Paint.Align.LEFT else Paint.Align.RIGHT)
+    }
+
+    private fun drawLabel(
+        canvas: Canvas,
+        text: String,
+        x: Float,
+        cy: Float,
+        size: Float,
+        color: Int,
+        bold: Boolean = false,
+        align: Paint.Align = Paint.Align.CENTER
+    ) {
         textPaint.textSize = size
         textPaint.color = color
+        textPaint.textAlign = align
         textPaint.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         val fm = textPaint.fontMetrics
-        canvas.drawText(text, cx, cy - (fm.ascent + fm.descent) / 2f, textPaint)
+        canvas.drawText(text, x, cy - (fm.ascent + fm.descent) / 2f, textPaint)
     }
 
     private fun drawShift(canvas: Canvas, cx: Float, cy: Float, color: Int) {
         val s = dp(18f)
-        val y = if (shiftMode == ShiftMode.LOCKED) cy - dp(2f) else cy
+        val mode = state.shiftMode
+        val y = if (mode == ShiftMode.LOCKED) cy - dp(2f) else cy
         path.reset()
         path.moveTo(cx, y - s / 2)
         path.lineTo(cx + s / 2, y)
@@ -197,67 +230,103 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         path.lineTo(cx - s / 4.5f, y)
         path.lineTo(cx - s / 2, y)
         path.close()
-        if (shiftMode == ShiftMode.OFF) {
-            strokePaint.color = color
+        val shapeColor = if (mode == ShiftMode.OFF) color else theme.background
+        if (mode == ShiftMode.OFF) {
+            strokePaint.color = shapeColor
             canvas.drawPath(path, strokePaint)
         } else {
-            fillPaint.color = color
+            fillPaint.color = shapeColor
             canvas.drawPath(path, fillPaint)
         }
-        if (shiftMode == ShiftMode.LOCKED) {
-            fillPaint.color = color
+        if (mode == ShiftMode.LOCKED) {
+            fillPaint.color = shapeColor
             canvas.drawRect(cx - s / 4.5f, y + s / 2 + dp(2.5f), cx + s / 4.5f, y + s / 2 + dp(4f), fillPaint)
         }
     }
 
+    /**
+     * Delete key in the Unexpected Keyboard style: a big backspace in the middle and small icons on
+     * each side showing the swipe directions (word back, word forward, letter forward, line back).
+     */
     private fun drawDelete(canvas: Canvas, r: RectF, color: Int, pressed: Boolean) {
-        val w = min(dp(24f), r.width() * 0.55f)
-        val h = w * 0.72f
         val cx = r.centerX()
         val cy = r.centerY()
-        val left = cx - w / 2
-        val right = cx + w / 2
-        path.reset()
-        path.moveTo(left, cy)
-        path.lineTo(left + h / 2, cy - h / 2)
-        path.lineTo(right, cy - h / 2)
-        path.lineTo(right, cy + h / 2)
-        path.lineTo(left + h / 2, cy + h / 2)
-        path.close()
-        strokePaint.color = color
+        val oldWidth = strokePaint.strokeWidth
+
+        val w = min(dp(21f), r.width() * 0.4f)
+        val h = w * 0.7f
+        tagPath(cx, cy, w, h, pointLeft = true)
         if (pressed) {
             fillPaint.color = color
             canvas.drawPath(path, fillPaint)
-            strokePaint.color = theme.key
-        } else {
-            canvas.drawPath(path, strokePaint)
         }
-        val xc = left + h / 2 + (right - left - h / 2) / 2
-        val d = h * 0.2f
-        canvas.drawLine(xc - d, cy - d, xc + d, cy + d, strokePaint)
-        canvas.drawLine(xc - d, cy + d, xc + d, cy - d, strokePaint)
-        // Faint hints for the swipe directions: words back / words forward.
-        drawLabel(canvas, "«", r.left + dp(7f), cy, sp(11f), theme.hint, false)
-        drawLabel(canvas, "»", r.right - dp(7f), cy, sp(11f), theme.hint, false)
-    }
-
-    private fun drawGlobe(canvas: Canvas, cx: Float, cy: Float, color: Int) {
-        val rad = dp(9f)
         strokePaint.color = color
-        val oldWidth = strokePaint.strokeWidth
-        strokePaint.strokeWidth = dp(1.3f)
-        canvas.drawCircle(cx, cy, rad, strokePaint)
-        rect.set(cx - rad * 0.45f, cy - rad, cx + rad * 0.45f, cy + rad)
-        canvas.drawOval(rect, strokePaint)
-        canvas.drawLine(cx - rad, cy, cx + rad, cy, strokePaint)
-        val chord = rad * 0.87f
-        canvas.drawLine(cx - chord, cy - rad * 0.5f, cx + chord, cy - rad * 0.5f, strokePaint)
-        canvas.drawLine(cx - chord, cy + rad * 0.5f, cx + chord, cy + rad * 0.5f, strokePaint)
+        canvas.drawPath(path, strokePaint)
+        drawCross(canvas, cx + h * 0.2f, cy, h * 0.2f, if (pressed) theme.key else color)
+
+        strokePaint.strokeWidth = dp(1f)
+        val sw = dp(12f)
+        val sh = dp(9f)
+        val hint = theme.hint
+        strokePaint.color = hint
+        val leftX = r.left + dp(3f) + sw / 2
+        tagPath(leftX, cy, sw, sh, pointLeft = true)
+        canvas.drawPath(path, strokePaint)
+        drawLabel(canvas, "W", leftX + sh * 0.15f, cy, sp(6.5f), hint, bold = true)
+
+        val rightX = r.right - dp(3f) - sw / 2
+        tagPath(rightX, cy, sw, sh, pointLeft = false)
+        canvas.drawPath(path, strokePaint)
+        drawLabel(canvas, "W", rightX - sh * 0.15f, cy, sp(6.5f), hint, bold = true)
+
+        val topY = r.top + dp(6.5f)
+        tagPath(cx, topY, dp(11f), dp(8f), pointLeft = false)
+        canvas.drawPath(path, strokePaint)
+        drawCross(canvas, cx - dp(1.2f), topY, dp(1.6f), hint)
+
+        val botY = r.bottom - dp(6.5f)
+        canvas.drawLine(cx - dp(5f), botY - dp(3.5f), cx - dp(5f), botY + dp(3.5f), strokePaint)
+        canvas.drawLine(cx - dp(3.5f), botY, cx + dp(5f), botY, strokePaint)
+        canvas.drawLine(cx - dp(3.5f), botY, cx - dp(1f), botY - dp(2.5f), strokePaint)
+        canvas.drawLine(cx - dp(3.5f), botY, cx - dp(1f), botY + dp(2.5f), strokePaint)
         strokePaint.strokeWidth = oldWidth
     }
 
-    /** iPhone-style magnified key that pops up above the pressed key. */
-    private fun drawBalloon(canvas: Canvas, pk: PlacedKey) {
+    /** Builds a backspace-style tag shape (a box with one pointed end) into [path]. */
+    private fun tagPath(cx: Float, cy: Float, w: Float, h: Float, pointLeft: Boolean) {
+        val l = cx - w / 2
+        val r = cx + w / 2
+        val t = cy - h / 2
+        val b = cy + h / 2
+        val tip = h / 2
+        path.reset()
+        if (pointLeft) {
+            path.moveTo(l, cy)
+            path.lineTo(l + tip, t)
+            path.lineTo(r, t)
+            path.lineTo(r, b)
+            path.lineTo(l + tip, b)
+        } else {
+            path.moveTo(r, cy)
+            path.lineTo(r - tip, t)
+            path.lineTo(l, t)
+            path.lineTo(l, b)
+            path.lineTo(r - tip, b)
+        }
+        path.close()
+    }
+
+    private fun drawCross(canvas: Canvas, cx: Float, cy: Float, d: Float, color: Int) {
+        val old = strokePaint.color
+        strokePaint.color = color
+        canvas.drawLine(cx - d, cy - d, cx + d, cy + d, strokePaint)
+        canvas.drawLine(cx - d, cy + d, cx + d, cy - d, strokePaint)
+        strokePaint.color = old
+    }
+
+    /** iPhone-style magnified key above the pressed key; shows the corner character when swiping to one. */
+    private fun drawBalloon(canvas: Canvas, p: Pointer) {
+        val pk = p.key
         val k = RectF(keyRect(pk.cell))
         val kh = k.height()
         val extra = dp(10f)
@@ -287,28 +356,31 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         path.quadTo(headLeft, headTop, headLeft + rad, headTop)
         path.close()
 
-        fillPaint.color = theme.shadow
-        canvas.save()
-        canvas.translate(0f, dp(1f))
-        canvas.drawPath(path, fillPaint)
-        canvas.restore()
         fillPaint.color = theme.key
         canvas.drawPath(path, fillPaint)
+        strokePaint.color = theme.hint
+        val oldWidth = strokePaint.strokeWidth
+        strokePaint.strokeWidth = dp(0.75f)
+        canvas.drawPath(path, strokePaint)
+        strokePaint.strokeWidth = oldWidth
 
-        val label = pk.key.label.let { if (upperCase && layout.page == KeyboardPage.LETTERS) it.uppercase() else it }
-        drawLabel(canvas, label, (headLeft + headRight) / 2, (headTop + headBottom) / 2, sp(34f), theme.keyText, false)
+        val cornerAction = p.corner?.let { pk.key.corners[it] }
+        val label = if (cornerAction != null) cornerLabel(cornerAction) else letterCase(pk.key.label)
+        val color = if (cornerAction != null) theme.accent else theme.keyText
+        drawLabel(canvas, label, (headLeft + headRight) / 2, (headTop + headBottom) / 2, sp(34f), color)
     }
 
     // ---------------------------------------------------------------- touch
 
-    private enum class Mode { PRESS, CURSOR, DELETE_GESTURE, DELETE_REPEAT, DONE }
+    private enum class Mode { PRESS, CURSOR, DELETE_GESTURE, DELETE_REPEAT, KEY_REPEAT, DONE }
 
-    private inner class Pointer(val id: Int, var key: PlacedKey, val startX: Float, val startY: Float) {
+    private inner class Pointer(val id: Int, val key: PlacedKey, val startX: Float, val startY: Float) {
         var lastX = startX
         var lastY = startY
         var mode = Mode.PRESS
-        val deleteTracker = DeleteGestureTracker(dp(18f), dp(32f))
-        val trackpad = TrackpadAccumulator(dp(9f), dp(34f))
+        var corner: Corner? = null
+        val deleteTracker = DeleteGestureTracker(dp(18f))
+        val trackpad = TrackpadAccumulator(dp(15f), dp(40f))
         var repeatCount = 0
         var pending: Runnable? = null
     }
@@ -356,22 +428,22 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         haptic(HapticFeedbackConstants.KEYBOARD_TAP)
         when (val action = pk.key.action) {
             KeyAction.Shift -> listener.onShiftDown()
-            is KeyAction.Page -> {
-                p.mode = Mode.DONE
-                listener.onPageChange(action.target)
-            }
-            KeyAction.Delete -> schedule(p, DELETE_REPEAT_DELAY_MS) { deleteRepeat(p) }
+            KeyAction.Delete -> schedule(p, REPEAT_DELAY_MS) { deleteRepeat(p) }
             KeyAction.Space -> schedule(p, SPACE_LONG_PRESS_MS) {
                 if (p.mode == Mode.PRESS) {
                     enterCursorMode(p)
                     haptic(HapticFeedbackConstants.LONG_PRESS)
                 }
             }
-            KeyAction.SwitchKeyboard -> schedule(p, GLOBE_LONG_PRESS_MS) {
-                if (p.mode == Mode.PRESS) {
+            KeyAction.Fn -> schedule(p, LONG_PRESS_MS) {
+                if (p.mode == Mode.PRESS && p.corner == null) {
                     p.mode = Mode.DONE
+                    haptic(HapticFeedbackConstants.LONG_PRESS)
                     listener.onShowKeyboardPicker()
                 }
+            }
+            is KeyAction.Special -> if (action.key.repeats) {
+                schedule(p, REPEAT_DELAY_MS) { keyRepeat(p, action) }
             }
             else -> Unit
         }
@@ -385,29 +457,23 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     cancelPending(p)
                     enterCursorMode(p)
                 }
-                KeyAction.Delete -> {
-                    val n = p.deleteTracker.update(x - p.startX, y - p.startY)
-                    val op = p.deleteTracker.op
-                    if (op != null) {
-                        cancelPending(p)
-                        p.mode = Mode.DELETE_GESTURE
-                        performDelete(op, n)
-                    }
+                KeyAction.Delete -> if (p.deleteTracker.update(x - p.startX, y - p.startY)) {
+                    // Swipe chosen: delete once now, then repeat like a held key while the finger stays out.
+                    cancelPending(p)
+                    p.mode = Mode.DELETE_GESTURE
+                    p.deleteTracker.op?.let { performDelete(it, 1) }
+                    if (p.deleteTracker.repeats) schedule(p, REPEAT_DELAY_MS) { swipeRepeat(p) }
                 }
-                is KeyAction.Text -> {
-                    val pk = geometry().keyAt(x, y)
-                    if (pk != null && pk.key.style == KeyStyle.CHARACTER) p.key = pk
+                else -> if (p.key.key.corners.isNotEmpty()) {
+                    val corner = cornerOf(x - p.startX, y - p.startY, cornerSwipeThreshold)
+                    p.corner = corner?.takeIf { it in p.key.key.corners }
                 }
-                else -> Unit
             }
             Mode.CURSOR -> {
                 val steps = p.trackpad.move(x - p.lastX, y - p.lastY)
                 if (!steps.isZero) listener.onCursorMove(steps.x, steps.y, selecting)
             }
-            Mode.DELETE_GESTURE -> {
-                val op = p.deleteTracker.op ?: return
-                performDelete(op, p.deleteTracker.update(x - p.startX, y - p.startY))
-            }
+            Mode.DELETE_GESTURE -> p.deleteTracker.update(x - p.startX, y - p.startY)
             else -> Unit
         }
         p.lastX = x
@@ -439,13 +505,11 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     }
 
     private fun fire(p: Pointer) {
-        when (val action = p.key.key.action) {
-            is KeyAction.Text -> listener.onKeyText(action.text)
+        val action = p.corner?.let { p.key.key.corners[it] } ?: p.key.key.action
+        when (action) {
+            KeyAction.Shift -> Unit
             KeyAction.Delete -> listener.onDelete(DeleteOp.CHAR_BACK, 1)
-            KeyAction.Space -> listener.onSpace()
-            KeyAction.Enter -> listener.onEnter()
-            KeyAction.SwitchKeyboard -> listener.onSwitchKeyboard()
-            else -> Unit
+            else -> listener.onAction(action)
         }
     }
 
@@ -470,7 +534,22 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         listener.onDelete(if (words) DeleteOp.WORD_BACK else DeleteOp.CHAR_BACK, 1)
         if (words) haptic(HapticFeedbackConstants.CLOCK_TICK)
         schedule(p, if (words) WORD_REPEAT_INTERVAL_MS else CHAR_REPEAT_INTERVAL_MS) { deleteRepeat(p) }
-        invalidate()
+    }
+
+    /** A held delete swipe repeats with the same timing as holding the delete key. */
+    private fun swipeRepeat(p: Pointer) {
+        val op = p.deleteTracker.op ?: return
+        if (p.deleteTracker.engaged) performDelete(op, 1)
+        val interval = if (op == DeleteOp.CHAR_FORWARD) CHAR_REPEAT_INTERVAL_MS else WORD_REPEAT_INTERVAL_MS
+        schedule(p, interval) { swipeRepeat(p) }
+    }
+
+    /** Arrow keys and forward delete on the Fn page repeat while held. */
+    private fun keyRepeat(p: Pointer, action: KeyAction) {
+        if (p.mode != Mode.PRESS && p.mode != Mode.KEY_REPEAT) return
+        p.mode = Mode.KEY_REPEAT
+        listener.onAction(action)
+        schedule(p, CHAR_REPEAT_INTERVAL_MS) { keyRepeat(p, action) }
     }
 
     private fun schedule(p: Pointer, delayMs: Long, block: () -> Unit) {
@@ -496,11 +575,12 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     }
 
     private companion object {
-        const val DELETE_REPEAT_DELAY_MS = 400L
+        const val ROWS = 4
+        const val REPEAT_DELAY_MS = 400L
         const val CHAR_REPEAT_INTERVAL_MS = 55L
         const val WORD_REPEAT_INTERVAL_MS = 230L
         const val WORD_REPEAT_AFTER = 18
         const val SPACE_LONG_PRESS_MS = 350L
-        const val GLOBE_LONG_PRESS_MS = 450L
+        const val LONG_PRESS_MS = 450L
     }
 }

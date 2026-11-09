@@ -6,10 +6,42 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-08
+
+### Added
+- Corner swipes (Unexpected Keyboard style): small symbols in a key's corner are
+  used by swiping from the key toward that corner.
+- Accent dead keys under a, s, d, f, g, h, l and above u: grave, acute,
+  circumflex, tilde, cedilla, caron, macron and diaeresis. Pick one, then type
+  the letter (´ then e = é).
+- Fn key in place of the globe. Tap for a page with F1–F12, Esc, Tab, Home, End,
+  Page Up/Down, Insert, arrows and forward delete (arrows and delete repeat when
+  held). Hold to pick a keyboard. Corners: Alt, switch keyboard, emoji, settings.
+- One-shot Ctrl (bottom-right of the 123 key) and Alt modifiers for shortcuts
+  such as Ctrl+C, Ctrl+V and Ctrl+Z.
+- Emoji picker with category tabs and recent emoji, built from Unicode's
+  emoji-test.txt by `tools/generate_emoji.py`. Emoji the phone's font cannot
+  draw are hidden.
+- Blackout theme (pure black), now the default for the keyboard and the app.
+
+### Changed
+- Renamed from Blend Keyboard to Tecla (package `app.tecla.keyboard`).
+- Delete swipes now delete once, then repeat with the same timing as holding
+  delete while the finger stays out, instead of deleting more with distance.
+- Delete key redrawn with Unexpected Keyboard style side icons for each swipe;
+  shift and delete keys are wider.
+- Space-bar cursor moves slower (15dp per character, 40dp per line).
+- The setup screen's test box now has a visible border, cursor and selection
+  highlight.
+
+### Removed
+- Double-tap space to type a period.
+- Light and dark themes that followed the system (blackout replaces them for now).
+
 ## [0.1.0] - 2026-11-06
 
 ### Added
-- First demo of Blend Keyboard, an Android keyboard (input method).
+- First demo of Tecla, an Android keyboard (input method).
 - iPhone-style layout and look: QWERTY letters, "123" and "#+=" pages, globe,
   space and return keys, light and dark themes that follow the system.
 - Key-press balloons, haptic feedback, and fast two-thumb typing (a key is

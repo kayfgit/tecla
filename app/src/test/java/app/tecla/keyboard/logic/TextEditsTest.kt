@@ -1,8 +1,6 @@
-package app.blend.keyboard.logic
+package app.tecla.keyboard.logic
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TextEditsTest {
@@ -79,20 +77,5 @@ class TextEditsTest {
     @Test
     fun `line before at a line start deletes the break`() {
         assertEquals(1, TextEdits.lineLengthBefore("first\n"))
-    }
-
-    @Test
-    fun `double space adds a period after a word`() {
-        assertTrue(TextEdits.shouldInsertPeriod("lo "))
-        assertTrue(TextEdits.shouldInsertPeriod("(x) "))
-    }
-
-    @Test
-    fun `double space does not add a period after punctuation or spaces`() {
-        assertFalse(TextEdits.shouldInsertPeriod("o. "))
-        assertFalse(TextEdits.shouldInsertPeriod("o  "))
-        assertFalse(TextEdits.shouldInsertPeriod(" "))
-        assertFalse(TextEdits.shouldInsertPeriod(null))
-        assertFalse(TextEdits.shouldInsertPeriod("ab"))
     }
 }

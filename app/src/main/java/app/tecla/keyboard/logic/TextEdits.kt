@@ -1,4 +1,4 @@
-package app.blend.keyboard.logic
+package app.tecla.keyboard.logic
 
 /** Pure text rules used by the delete key and the space bar. */
 object TextEdits {
@@ -68,12 +68,5 @@ object TextEdits {
         if (text.last() == '\n') return 1
         val lastBreak = text.lastIndexOf('\n')
         return text.length - (lastBreak + 1)
-    }
-
-    /** iPhone "double-tap space for period": true when the text ends in a word followed by one space. */
-    fun shouldInsertPeriod(before: CharSequence?): Boolean {
-        if (before == null || before.length < 2 || before.last() != ' ') return false
-        val c = before[before.length - 2]
-        return c.isLetterOrDigit() || c in ")\"'”’"
     }
 }

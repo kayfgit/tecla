@@ -1,4 +1,4 @@
-package app.blend.keyboard.logic
+package app.tecla.keyboard.logic
 
 enum class ShiftMode { OFF, ONCE, LOCKED }
 
