@@ -165,6 +165,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             KeyAction.Shift -> drawShift(canvas, cx, cy, fg)
             KeyAction.Delete -> drawDelete(canvas, r, fg, pressed)
             KeyAction.Enter -> state.enterLabel?.let { drawLabel(canvas, it, cx, cy, sp(16f), fg) } ?: drawReturn(canvas, cx, cy, fg)
+            KeyAction.Ctrl -> drawLabel(canvas, key.label, cx, cy, sp(16f), if (state.ctrl) theme.accent else fg)
             KeyAction.Fn -> drawLabel(canvas, key.label, cx, cy, sp(16f), if (state.layout.page == KeyboardPage.FN) theme.accent else fg)
             is KeyAction.Text -> drawLabel(canvas, letterCase(key.label), cx, cy, sp(23f), fg)
             is KeyAction.Special -> drawLabel(canvas, key.label, cx, cy, sp(if (action.key.label.length > 3) 13f else 17f), fg)
@@ -176,6 +177,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private fun cornerLabel(action: KeyAction): String = when (action) {
         is KeyAction.Text -> action.text
         is KeyAction.Dead -> action.accent.label
+        is KeyAction.Special -> action.key.label
         KeyAction.Ctrl -> "ctrl"
         KeyAction.Alt -> "alt"
         KeyAction.SwitchKeyboard -> "⌨︎"

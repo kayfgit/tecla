@@ -259,7 +259,6 @@ class TeclaImeService :
                 action.accent
             }
             is KeyAction.Special -> sendKey(keyCodeFor(action.key), consumeModifiers())
-            is KeyAction.Page -> page = action.target
             KeyAction.Space -> typeSpace()
             KeyAction.Enter -> enter()
             KeyAction.Ctrl -> ctrl = !ctrl
@@ -291,7 +290,8 @@ class TeclaImeService :
 
     private fun typeText(text: String) {
         val ic = currentInputConnection ?: return
-        var out = if (shift.isUpperCase && page == KeyboardPage.LETTERS) text.uppercase() else text
+        // Per character, so a shifted ß stays ß instead of becoming "SS".
+        var out = if (shift.isUpperCase && page == KeyboardPage.LETTERS) text.map { it.uppercaseChar() }.joinToString("") else text
         val meta = consumeModifiers()
         val code = if (meta != 0) keyCodeFor(text) else null
         if (code != null) {
@@ -302,7 +302,6 @@ class TeclaImeService :
         }
         pendingAccent = null
         shift.onCharacterTyped()
-        if ((page == KeyboardPage.NUMBERS || page == KeyboardPage.SYMBOLS) && text == "'") page = KeyboardPage.LETTERS
     }
 
     private fun typeSpace() {
@@ -315,7 +314,6 @@ class TeclaImeService :
             else -> ic.commitText(" ", 1)
         }
         pendingAccent = null
-        if (page == KeyboardPage.NUMBERS || page == KeyboardPage.SYMBOLS) page = KeyboardPage.LETTERS
     }
 
     private fun enter() {

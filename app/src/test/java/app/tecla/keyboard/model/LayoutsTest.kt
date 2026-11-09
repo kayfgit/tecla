@@ -43,14 +43,53 @@ class LayoutsTest {
         assertEquals(KeyAction.Dead(Accent.TILDE), letterKey("f").corners[Corner.BOTTOM_RIGHT])
         assertEquals(KeyAction.Dead(Accent.CEDILLA), letterKey("g").corners[Corner.BOTTOM_RIGHT])
         assertEquals(KeyAction.Dead(Accent.DIAERESIS), letterKey("u").corners[Corner.TOP_LEFT])
-        assertTrue(letterKey("q").corners.isEmpty())
+        assertTrue(letterKey("z").corners.isEmpty())
     }
 
     @Test
-    fun `bottom row has 123 with ctrl and Fn with alt, keyboard, emoji and settings`() {
+    fun `numbers sit in the top-right corners of the top row`() {
+        "qwertyuiop".forEachIndexed { i, c ->
+            assertEquals("$c", KeyAction.Text("${(i + 1) % 10}"), letterKey("$c").corners[Corner.TOP_RIGHT])
+        }
+    }
+
+    private val cornerTexts: Set<String> = Layouts.letters.rows.flatMap { it.keys }
+        .flatMap { it.corners.values }
+        .mapNotNull { (it as? KeyAction.Text)?.text }
+        .toSet()
+
+    @Test
+    fun `every symbol from the old 123 pages is in a letter corner`() {
+        val symbols = "-/:;()$&@\".,?!'[]{}#%^*+=_\\|~<>€`"
+        for (s in symbols) assertTrue("$s", "$s" in cornerTexts)
+    }
+
+    @Test
+    fun `symbols sit in the same corners as unexpected keyboard`() {
+        assertEquals(KeyAction.Text("@"), letterKey("w").corners[Corner.BOTTOM_LEFT])
+        assertEquals(KeyAction.Text("!"), letterKey("e").corners[Corner.TOP_LEFT])
+        assertEquals(KeyAction.Text("("), letterKey("o").corners[Corner.BOTTOM_LEFT])
+        assertEquals(KeyAction.Text(")"), letterKey("o").corners[Corner.BOTTOM_RIGHT])
+        assertEquals(KeyAction.Text("."), letterKey("c").corners[Corner.BOTTOM_LEFT])
+        assertEquals(KeyAction.Text("?"), letterKey("b").corners[Corner.TOP_RIGHT])
+        assertEquals(KeyAction.Special(SpecialKey.ESCAPE), letterKey("q").corners[Corner.BOTTOM_RIGHT])
+        assertEquals(KeyAction.Special(SpecialKey.TAB), letterKey("a").corners[Corner.TOP_LEFT])
+    }
+
+    @Test
+    fun `there is no 123 key and only number fields use the numbers page`() {
+        for (layout in listOf(Layouts.letters, Layouts.fn)) {
+            val labels = layout.rows.flatMap { it.keys }.map { it.label }
+            assertTrue(layout.page.toString(), "123" !in labels && "ABC" !in labels)
+        }
+    }
+
+    @Test
+    fun `bottom row is a plain ctrl key, then Fn with alt, keyboard, emoji and settings`() {
         for (layout in all) {
             val bottom = layout.rows.last().keys
-            assertEquals(KeyAction.Ctrl, bottom[0].corners[Corner.BOTTOM_RIGHT])
+            assertEquals(KeyAction.Ctrl, bottom[0].action)
+            assertTrue(bottom[0].corners.isEmpty())
             val fn = bottom[1]
             assertEquals(KeyAction.Fn, fn.action)
             assertEquals(
@@ -90,7 +129,6 @@ class LayoutsTest {
             KeyAction.Enter,
             KeyAction.Fn,
             KeyAction.Ctrl,
-            KeyAction.Page(KeyboardPage.NUMBERS),
             KeyAction.Dead(Accent.ACUTE),
             KeyAction.Special(SpecialKey.ESCAPE),
             KeyAction.Special(SpecialKey.F1)

@@ -47,8 +47,6 @@ enum class SpecialKey(val label: String, val repeats: Boolean = false) {
 sealed interface KeyAction {
     data class Text(val text: String) : KeyAction
 
-    data class Page(val target: KeyboardPage) : KeyAction
-
     data class Dead(val accent: Accent) : KeyAction
 
     data class Special(val key: SpecialKey) : KeyAction
@@ -90,7 +88,7 @@ val KeyAction.repeatsWhenHeld: Boolean
 /** Where an extra action sits on a key; swipe toward that corner to use it. */
 enum class Corner { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
-enum class KeyboardPage { LETTERS, NUMBERS, SYMBOLS, FN }
+enum class KeyboardPage { LETTERS, NUMBERS, FN }
 
 enum class KeyStyle { CHARACTER, FUNCTION, SPACE, ENTER, GAP }
 
@@ -124,23 +122,51 @@ data class KeyboardLayout(val page: KeyboardPage, val rows: List<KeyRow>)
 
 const val UNITS_PER_ROW = 10f
 
-/** iPhone-style layouts with Unexpected Keyboard style corner swipes. */
+/** iPhone-style layouts with numbers, symbols and accents in the letters' corners (Unexpected Keyboard style). */
 object Layouts {
-    /** Accent dead keys under letters, placed as on Unexpected Keyboard. */
-    private val accentCorners: Map<Char, Pair<Corner, Accent>> = mapOf(
-        'u' to (Corner.TOP_LEFT to Accent.DIAERESIS),
-        'a' to (Corner.BOTTOM_RIGHT to Accent.GRAVE),
-        's' to (Corner.BOTTOM_RIGHT to Accent.ACUTE),
-        'd' to (Corner.BOTTOM_RIGHT to Accent.CIRCUMFLEX),
-        'f' to (Corner.BOTTOM_RIGHT to Accent.TILDE),
-        'g' to (Corner.BOTTOM_RIGHT to Accent.CEDILLA),
-        'h' to (Corner.BOTTOM_RIGHT to Accent.CARON),
-        'l' to (Corner.BOTTOM_RIGHT to Accent.MACRON)
+    private val TL = Corner.TOP_LEFT
+    private val TR = Corner.TOP_RIGHT
+    private val BL = Corner.BOTTOM_LEFT
+    private val BR = Corner.BOTTOM_RIGHT
+
+    private fun t(s: String) = KeyAction.Text(s)
+
+    private fun dead(accent: Accent) = KeyAction.Dead(accent)
+
+    /**
+     * Swipe-to-corner actions on the letter keys, placed as on Unexpected Keyboard: numbers along
+     * the top row's top-right corners, accent dead keys under a s d f g h l (and above u), and the
+     * symbols from the old 123 pages around them.
+     */
+    private val letterCorners: Map<Char, Map<Corner, KeyAction>> = mapOf(
+        'q' to mapOf(TR to t("1"), BR to KeyAction.Special(SpecialKey.ESCAPE)),
+        'w' to mapOf(TL to t("~"), TR to t("2"), BL to t("@")),
+        'e' to mapOf(TL to t("!"), TR to t("3"), BL to t("#"), BR to t("€")),
+        'r' to mapOf(TR to t("4"), BL to t("$")),
+        't' to mapOf(TR to t("5"), BL to t("%")),
+        'y' to mapOf(TR to t("6"), BL to t("^")),
+        'u' to mapOf(TL to dead(Accent.DIAERESIS), TR to t("7"), BL to t("&")),
+        'i' to mapOf(TR to t("8"), BL to t("*")),
+        'o' to mapOf(TR to t("9"), BL to t("("), BR to t(")")),
+        'p' to mapOf(TR to t("0")),
+        'a' to mapOf(TL to KeyAction.Special(SpecialKey.TAB), TR to t("`"), BR to dead(Accent.GRAVE)),
+        's' to mapOf(BL to t("ß"), BR to dead(Accent.ACUTE)),
+        'd' to mapOf(BR to dead(Accent.CIRCUMFLEX)),
+        'f' to mapOf(BR to dead(Accent.TILDE)),
+        'g' to mapOf(TR to t("-"), BL to t("_"), BR to dead(Accent.CEDILLA)),
+        'h' to mapOf(TR to t("="), BL to t("+"), BR to dead(Accent.CARON)),
+        'j' to mapOf(BL to t("{"), BR to t("}")),
+        'k' to mapOf(BL to t("["), BR to t("]")),
+        'l' to mapOf(TR to t("|"), BL to t("\\"), BR to dead(Accent.MACRON)),
+        'c' to mapOf(TR to t("<"), BL to t(".")),
+        'v' to mapOf(TR to t(">"), BL to t(",")),
+        'b' to mapOf(TR to t("?"), BL to t("/")),
+        'n' to mapOf(TR to t(":"), BL to t(";")),
+        'm' to mapOf(TR to t("\""), BL to t("'"))
     )
 
     private fun letters(s: String): List<Key> = s.map { c ->
-        val corners = accentCorners[c]?.let { (corner, accent) -> mapOf(corner to KeyAction.Dead(accent)) }.orEmpty()
-        Key(KeyAction.Text(c.toString()), c.toString(), corners = corners)
+        Key(KeyAction.Text(c.toString()), c.toString(), corners = letterCorners[c].orEmpty())
     }
 
     private fun chars(s: String, width: Float = 1f): List<Key> = s.map { Key(KeyAction.Text(it.toString()), it.toString(), width) }
@@ -149,7 +175,7 @@ object Layouts {
 
     private val delete = Key(KeyAction.Delete, "delete", 1.5f, KeyStyle.FUNCTION)
 
-    private val ctrlCorner = mapOf(Corner.BOTTOM_RIGHT to KeyAction.Ctrl)
+    private val ctrlKey = Key(KeyAction.Ctrl, "ctrl", 1.25f, KeyStyle.FUNCTION)
 
     private val fnKey = Key(
         KeyAction.Fn,
@@ -157,18 +183,16 @@ object Layouts {
         1.25f,
         KeyStyle.FUNCTION,
         corners = mapOf(
-            Corner.TOP_LEFT to KeyAction.Alt,
-            Corner.TOP_RIGHT to KeyAction.SwitchKeyboard,
-            Corner.BOTTOM_LEFT to KeyAction.Emoji,
-            Corner.BOTTOM_RIGHT to KeyAction.Settings
+            TL to KeyAction.Alt,
+            TR to KeyAction.SwitchKeyboard,
+            BL to KeyAction.Emoji,
+            BR to KeyAction.Settings
         )
     )
 
-    private fun pageKey(label: String, target: KeyboardPage) = Key(KeyAction.Page(target), label, 1.25f, KeyStyle.FUNCTION, ctrlCorner)
-
-    private fun bottomRow(pageKey: Key) = KeyRow(
+    private val bottomRow = KeyRow(
         listOf(
-            pageKey,
+            ctrlKey,
             fnKey,
             Key(KeyAction.Space, "space", 5.5f, KeyStyle.SPACE),
             Key(KeyAction.Enter, "return", 2f, KeyStyle.ENTER)
@@ -181,31 +205,18 @@ object Layouts {
             KeyRow(letters("qwertyuiop")),
             KeyRow(letters("asdfghjkl"), inset = 0.5f),
             KeyRow(listOf(Key(KeyAction.Shift, "shift", 1.5f, KeyStyle.FUNCTION)) + letters("zxcvbnm") + listOf(delete)),
-            bottomRow(pageKey("123", KeyboardPage.NUMBERS))
+            bottomRow
         )
     )
 
-    private fun punctuationRow(pageKey: Key) = KeyRow(listOf(pageKey) + chars(".,?!'", 1.4f) + listOf(delete))
-
-    private fun abc() = pageKey("ABC", KeyboardPage.LETTERS)
-
+    /** Shown on its own for number, phone and date fields; there is no key that switches to it. */
     val numbers = KeyboardLayout(
         KeyboardPage.NUMBERS,
         listOf(
             KeyRow(chars("1234567890")),
             KeyRow(chars("-/:;()$&@\"")),
-            punctuationRow(Key(KeyAction.Page(KeyboardPage.SYMBOLS), "#+=", 1.5f, KeyStyle.FUNCTION)),
-            bottomRow(abc())
-        )
-    )
-
-    val symbols = KeyboardLayout(
-        KeyboardPage.SYMBOLS,
-        listOf(
-            KeyRow(chars("[]{}#%^*+=")),
-            KeyRow(chars("_\\|~<>€£¥•")),
-            punctuationRow(Key(KeyAction.Page(KeyboardPage.NUMBERS), "123", 1.5f, KeyStyle.FUNCTION)),
-            bottomRow(abc())
+            KeyRow(chars("+*#.,", 1.7f) + listOf(delete)),
+            bottomRow
         )
     )
 
@@ -231,14 +242,13 @@ object Layouts {
                 listOf(SpecialKey.LEFT, SpecialKey.DOWN, SpecialKey.UP, SpecialKey.RIGHT).map { special(it, 1.5f) } +
                     listOf(special(SpecialKey.FORWARD_DELETE, 2.5f), delete)
             ),
-            bottomRow(abc())
+            bottomRow
         )
     )
 
     fun forPage(page: KeyboardPage): KeyboardLayout = when (page) {
         KeyboardPage.LETTERS -> letters
         KeyboardPage.NUMBERS -> numbers
-        KeyboardPage.SYMBOLS -> symbols
         KeyboardPage.FN -> fn
     }
 }
