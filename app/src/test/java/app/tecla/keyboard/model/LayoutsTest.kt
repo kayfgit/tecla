@@ -99,6 +99,26 @@ class LayoutsTest {
     }
 
     @Test
+    fun `holding an accent corner types the accent mark itself`() {
+        val s = Key(KeyAction.Text("s"), "s", corners = mapOf(Corner.BOTTOM_RIGHT to KeyAction.Dead(Accent.ACUTE)))
+        assertEquals(KeyAction.Text("´"), s.heldAction(Corner.BOTTOM_RIGHT))
+        assertEquals(KeyAction.Text("s"), s.heldAction(null))
+    }
+
+    @Test
+    fun `holding a symbol corner repeats the symbol, other corners do not repeat`() {
+        val key = Key(
+            KeyAction.Text("e"),
+            "e",
+            corners = mapOf(Corner.TOP_LEFT to KeyAction.Text("!"), Corner.BOTTOM_RIGHT to KeyAction.Ctrl)
+        )
+        assertEquals(KeyAction.Text("!"), key.heldAction(Corner.TOP_LEFT))
+        assertEquals(null, key.heldAction(Corner.BOTTOM_RIGHT))
+        assertEquals(null, key.heldAction(Corner.TOP_RIGHT))
+        assertEquals(null, Key(KeyAction.Shift, "shift").heldAction(null))
+    }
+
+    @Test
     fun `fn page has all twelve F keys and the arrows`() {
         val specials = Layouts.fn.rows.flatMap { it.keys }.mapNotNull { (it.action as? KeyAction.Special)?.key }
         assertTrue(specials.containsAll(SpecialKey.entries))

@@ -103,6 +103,20 @@ data class Key(
     val corners: Map<Corner, KeyAction> = emptyMap()
 )
 
+/**
+ * What holding this key keeps typing, with the finger in [corner] (null = the key itself), or null
+ * if it does not repeat. An accent corner repeats its plain mark (^^^^), since a dead key on its own
+ * types nothing.
+ */
+fun Key.heldAction(corner: Corner?): KeyAction? {
+    val target = if (corner == null) action else corners[corner] ?: return null
+    return when {
+        target is KeyAction.Dead -> KeyAction.Text(target.accent.spacing)
+        target.repeatsWhenHeld -> target
+        else -> null
+    }
+}
+
 /** A row of keys. [inset] is empty space on each side, in key units. */
 data class KeyRow(val keys: List<Key>, val inset: Float = 0f)
 

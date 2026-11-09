@@ -27,7 +27,7 @@ import app.tecla.keyboard.model.KeyStyle
 import app.tecla.keyboard.model.KeyboardGeometry
 import app.tecla.keyboard.model.KeyboardPage
 import app.tecla.keyboard.model.PlacedKey
-import app.tecla.keyboard.model.repeatsWhenHeld
+import app.tecla.keyboard.model.heldAction
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -498,9 +498,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     listener.onShowKeyboardPicker()
                 }
             }
-            else -> if (action.repeatsWhenHeld) {
-                schedule(p, REPEAT_DELAY_MS) { keyRepeat(p, action) }
-            }
+            else -> scheduleKeyRepeat(p)
         }
     }
 
@@ -520,8 +518,12 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     if (p.deleteTracker.repeats) schedule(p, REPEAT_DELAY_MS) { swipeRepeat(p) }
                 }
                 else -> if (p.key.key.corners.isNotEmpty()) {
-                    val corner = cornerOf(x - p.startX, y - p.startY, cornerSwipeThreshold)
-                    p.corner = corner?.takeIf { it in p.key.key.corners }
+                    val corner = cornerOf(x - p.startX, y - p.startY, cornerSwipeThreshold)?.takeIf { it in p.key.key.corners }
+                    if (corner != p.corner) {
+                        p.corner = corner
+                        // Holding still on a new corner (or back on the key) restarts the repeat wait.
+                        if (p.key.key.style == KeyStyle.CHARACTER) scheduleKeyRepeat(p)
+                    }
                 }
             }
             Mode.CURSOR -> {
@@ -599,13 +601,19 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         schedule(p, interval) { swipeRepeat(p) }
     }
 
-    /**
-     * Letters, symbols, arrows and forward delete repeat while held. A key that is being swiped to
-     * a corner does not repeat, so its corner still fires on release.
-     */
+    /** Starts the hold-to-repeat wait for whatever the finger is on now (the key or one of its corners). */
+    private fun scheduleKeyRepeat(p: Pointer) {
+        val held = p.key.key.heldAction(p.corner)
+        if (held == null) {
+            cancelPending(p)
+        } else {
+            schedule(p, REPEAT_DELAY_MS) { keyRepeat(p, held) }
+        }
+    }
+
+    /** Letters, symbols, accent marks, arrows and forward delete repeat while held. */
     private fun keyRepeat(p: Pointer, action: KeyAction) {
         if (p.mode != Mode.PRESS && p.mode != Mode.KEY_REPEAT) return
-        if (p.mode == Mode.PRESS && p.corner != null) return
         p.mode = Mode.KEY_REPEAT
         listener.onAction(action)
         schedule(p, CHAR_REPEAT_INTERVAL_MS) { keyRepeat(p, action) }
