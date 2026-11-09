@@ -14,6 +14,11 @@ All notable changes to this project are documented here. The format follows
   Before, quick triple taps left caps lock on.
 
 ### Changed
+- Targets Android 17 (API 37). Builds with Android Gradle Plugin 9.5.1
+  (built-in Kotlin), Gradle 9.9.0 and ktlint Gradle plugin 14.2.0.
+- On Android 15 and later the keyboard fills the area behind the navigation
+  bar and its switch/hide buttons with the theme background, keeping the keys
+  above them.
 - Accent hints in key corners are larger, bold and brighter, drawn as the
   plain accent marks (` ´ ^ ~ ¸ ˇ ¯ ¨) instead of small dotted-circle glyphs.
 
