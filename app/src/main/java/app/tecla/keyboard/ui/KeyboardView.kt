@@ -10,6 +10,7 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
@@ -439,6 +440,9 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         val trackpad = TrackpadAccumulator(dp(CursorSpeed.STEP_X_DP), dp(CursorSpeed.STEP_Y_DP))
         var repeatCount = 0
         var pending: Runnable? = null
+
+        /** When the pending step was due, in [SystemClock.uptimeMillis] time. */
+        var dueAt = 0L
     }
 
     private val pointers = LinkedHashMap<Int, Pointer>()
@@ -591,7 +595,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         p.mode = Mode.DELETE_REPEAT
         p.repeatCount++
         listener.onDelete(DeleteOp.CHAR_BACK, 1)
-        schedule(p, RepeatTiming.deleteInterval(p.repeatCount)) { deleteRepeat(p) }
+        scheduleNext(p, RepeatTiming.deleteInterval(p.repeatCount)) { deleteRepeat(p) }
     }
 
     /** A held delete swipe repeats: letters forward speed up like holding delete, words at a steady pace. */
@@ -602,7 +606,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             p.repeatCount++
         }
         val interval = if (op == DeleteOp.CHAR_FORWARD) RepeatTiming.deleteInterval(p.repeatCount) else WORD_REPEAT_INTERVAL_MS
-        schedule(p, interval) { swipeRepeat(p) }
+        scheduleNext(p, interval) { swipeRepeat(p) }
     }
 
     /** Starts the hold-to-repeat wait for whatever the finger is on now (the key or one of its corners). */
@@ -620,10 +624,23 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         if (p.mode != Mode.PRESS && p.mode != Mode.KEY_REPEAT) return
         p.mode = Mode.KEY_REPEAT
         listener.onAction(action)
-        schedule(p, RepeatTiming.KEY_INTERVAL_MS) { keyRepeat(p, action) }
+        scheduleNext(p, RepeatTiming.KEY_INTERVAL_MS) { keyRepeat(p, action) }
     }
 
-    private fun schedule(p: Pointer, delayMs: Long, block: () -> Unit) {
+    private fun schedule(p: Pointer, delayMs: Long, block: () -> Unit) = scheduleAt(p, SystemClock.uptimeMillis() + delayMs, block)
+
+    /**
+     * Schedules the next step of a repeat [intervalMs] after the previous one was due (not after it
+     * ran), so the time each repeat takes does not pile up and slow fast repeats down. After a long
+     * stall it restarts from now instead of firing a burst to catch up.
+     */
+    private fun scheduleNext(p: Pointer, intervalMs: Long, block: () -> Unit) {
+        val now = SystemClock.uptimeMillis()
+        val due = p.dueAt + intervalMs
+        scheduleAt(p, if (now - due > 2 * intervalMs) now else due, block)
+    }
+
+    private fun scheduleAt(p: Pointer, atMs: Long, block: () -> Unit) {
         cancelPending(p)
         val r = Runnable {
             p.pending = null
@@ -633,7 +650,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             }
         }
         p.pending = r
-        handler.postDelayed(r, delayMs)
+        p.dueAt = atMs
+        handler.postAtTime(r, atMs)
     }
 
     private fun cancelPending(p: Pointer) {
