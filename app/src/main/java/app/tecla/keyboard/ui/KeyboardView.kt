@@ -14,6 +14,7 @@ import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import app.tecla.keyboard.logic.CursorSpeed
 import app.tecla.keyboard.logic.DeleteGestureTracker
 import app.tecla.keyboard.logic.DeleteOp
 import app.tecla.keyboard.logic.ShiftMode
@@ -404,7 +405,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         var mode = Mode.PRESS
         var corner: Corner? = null
         val deleteTracker = DeleteGestureTracker(dp(18f))
-        val trackpad = TrackpadAccumulator(dp(15f), dp(40f))
+        val trackpad = TrackpadAccumulator(dp(CursorSpeed.STEP_X_DP), dp(CursorSpeed.STEP_Y_DP))
         var repeatCount = 0
         var pending: Runnable? = null
     }

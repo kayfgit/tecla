@@ -98,4 +98,12 @@ class GesturesTest {
         pad.reset()
         assertEquals(CursorSteps(0, 0), pad.move(5f, 0f))
     }
+
+    @Test
+    fun `space-bar cursor is 10 to 20 percent faster than the old 15dp and 40dp steps`() {
+        val speedupX = 15f / CursorSpeed.STEP_X_DP
+        val speedupY = 40f / CursorSpeed.STEP_Y_DP
+        assertTrue("x speedup $speedupX", speedupX in 1.1f..1.2f)
+        assertTrue("y speedup $speedupY", speedupY in 1.1f..1.2f)
+    }
 }
