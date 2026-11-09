@@ -7,8 +7,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- Holding a letter, number or symbol keeps typing it until you let go (after
-  a short delay, like the Fn page arrows). Swiping to a corner still works.
+- Holding a letter, number or symbol keeps typing it until you let go: after
+  400ms, about 30 a second. Holding on an accent corner repeats the accent
+  mark itself (^^^^), and holding on a symbol corner repeats the symbol.
+- Numbers and symbols in the letters' corners (Unexpected Keyboard layout):
+  1–0 in the top-right corners of q–p, symbols around them, Esc under q and
+  Tab above a.
 
 ### Fixed
 - Selecting text with the space bar (slide or long-press space, then tap a
@@ -30,6 +34,20 @@ All notable changes to this project are documented here. The format follows
   previous still show their words.
 - The space-bar cursor moves about 15% faster (13dp per character, 35dp per
   line).
+- Holding delete follows the Samsung Keyboard (measured on a Galaxy A36): it
+  starts after 400ms, deletes about 30 letters a second, then speeds up to
+  about 75 a second. Swiping delete up repeats the same way.
+- The bottom-left key is a plain Ctrl key (tap it, then press a key for
+  Ctrl+C, Ctrl+V…).
+- Shift no longer turns ß into "SS".
+
+### Removed
+- The 123 key and the numbers/symbols pages; their characters are in the
+  letter corners now. Number, phone and date fields still open a numbers
+  page on their own.
+- Holding delete no longer switches to deleting whole words; swipe left on
+  delete for words.
+- £, ¥ and • (they were only on the symbols page).
 
 ## [0.2.0] - 2026-11-08
 
