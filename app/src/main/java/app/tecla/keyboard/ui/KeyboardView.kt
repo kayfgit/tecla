@@ -27,6 +27,7 @@ import app.tecla.keyboard.model.KeyStyle
 import app.tecla.keyboard.model.KeyboardGeometry
 import app.tecla.keyboard.model.KeyboardPage
 import app.tecla.keyboard.model.PlacedKey
+import app.tecla.keyboard.model.repeatsWhenHeld
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -121,7 +122,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         val cursorMode = pointers.values.any { it.mode == Mode.CURSOR }
         for (pk in geometry().keys) drawKey(canvas, pk, cursorMode)
         for (p in pointers.values) {
-            if (p.mode == Mode.PRESS && p.key.key.style == KeyStyle.CHARACTER) drawBalloon(canvas, p)
+            val held = p.mode == Mode.PRESS || p.mode == Mode.KEY_REPEAT
+            if (held && p.key.key.style == KeyStyle.CHARACTER) drawBalloon(canvas, p)
         }
     }
 
@@ -462,10 +464,13 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             haptic(HapticFeedbackConstants.CLOCK_TICK)
             return
         }
-        // Fast two-thumb typing: commit any key still held before handling the new one.
+        // Fast two-thumb typing: commit any key still held before handling the new one,
+        // and stop a key that is repeating.
         for (p in pointers.values) {
-            if (p.mode == Mode.PRESS && p.key.key.style == KeyStyle.CHARACTER) {
-                fire(p)
+            if (p.key.key.style != KeyStyle.CHARACTER) continue
+            if (p.mode == Mode.PRESS) fire(p)
+            if (p.mode == Mode.PRESS || p.mode == Mode.KEY_REPEAT) {
+                cancelPending(p)
                 p.mode = Mode.DONE
             }
         }
@@ -489,10 +494,9 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     listener.onShowKeyboardPicker()
                 }
             }
-            is KeyAction.Special -> if (action.key.repeats) {
+            else -> if (action.repeatsWhenHeld) {
                 schedule(p, REPEAT_DELAY_MS) { keyRepeat(p, action) }
             }
-            else -> Unit
         }
     }
 
@@ -591,9 +595,13 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         schedule(p, interval) { swipeRepeat(p) }
     }
 
-    /** Arrow keys and forward delete on the Fn page repeat while held. */
+    /**
+     * Letters, symbols, arrows and forward delete repeat while held. A key that is being swiped to
+     * a corner does not repeat, so its corner still fires on release.
+     */
     private fun keyRepeat(p: Pointer, action: KeyAction) {
         if (p.mode != Mode.PRESS && p.mode != Mode.KEY_REPEAT) return
+        if (p.mode == Mode.PRESS && p.corner != null) return
         p.mode = Mode.KEY_REPEAT
         listener.onAction(action)
         schedule(p, CHAR_REPEAT_INTERVAL_MS) { keyRepeat(p, action) }

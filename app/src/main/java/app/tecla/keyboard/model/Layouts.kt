@@ -80,6 +80,13 @@ sealed interface KeyAction {
     data object Gap : KeyAction
 }
 
+/**
+ * Whether holding a key with this action keeps typing it: letters, numbers and symbols, plus the
+ * Fn page's arrows and forward delete. (Delete has its own repeat that speeds up to whole words.)
+ */
+val KeyAction.repeatsWhenHeld: Boolean
+    get() = this is KeyAction.Text || (this is KeyAction.Special && key.repeats)
+
 /** Where an extra action sits on a key; swipe toward that corner to use it. */
 enum class Corner { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 

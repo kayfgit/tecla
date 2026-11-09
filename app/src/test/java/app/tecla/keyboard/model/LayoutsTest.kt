@@ -75,6 +75,30 @@ class LayoutsTest {
     }
 
     @Test
+    fun `letters, symbols, arrows and forward delete repeat when held`() {
+        assertTrue(KeyAction.Text("a").repeatsWhenHeld)
+        assertTrue(KeyAction.Text("?").repeatsWhenHeld)
+        assertTrue(KeyAction.Special(SpecialKey.LEFT).repeatsWhenHeld)
+        assertTrue(KeyAction.Special(SpecialKey.FORWARD_DELETE).repeatsWhenHeld)
+    }
+
+    @Test
+    fun `modifiers, page switches and one-off keys do not repeat`() {
+        val once = listOf(
+            KeyAction.Shift,
+            KeyAction.Space,
+            KeyAction.Enter,
+            KeyAction.Fn,
+            KeyAction.Ctrl,
+            KeyAction.Page(KeyboardPage.NUMBERS),
+            KeyAction.Dead(Accent.ACUTE),
+            KeyAction.Special(SpecialKey.ESCAPE),
+            KeyAction.Special(SpecialKey.F1)
+        )
+        for (action in once) assertTrue("$action", !action.repeatsWhenHeld)
+    }
+
+    @Test
     fun `fn page has all twelve F keys and the arrows`() {
         val specials = Layouts.fn.rows.flatMap { it.keys }.mapNotNull { (it.action as? KeyAction.Special)?.key }
         assertTrue(specials.containsAll(SpecialKey.entries))
