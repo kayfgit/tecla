@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Holding a letter, number or symbol keeps typing it until you let go (after
+  a short delay, like the Fn page arrows). Swiping to a corner still works.
+
 ### Fixed
 - Selecting text with the space bar (slide or long-press space, then tap a
   second finger) now works in text fields: the arrow keys sent while
@@ -21,6 +25,11 @@ All notable changes to this project are documented here. The format follows
   above them.
 - Accent hints in key corners are larger, bold and brighter, drawn as the
   plain accent marks (` ´ ^ ~ ¸ ˇ ¯ ¨) instead of small dotted-circle glyphs.
+- The return key is smaller (the space bar is wider) and shows a return
+  arrow instead of the word "return". Go, search, send, done, next and
+  previous still show their words.
+- The space-bar cursor moves about 15% faster (13dp per character, 35dp per
+  line).
 
 ## [0.2.0] - 2026-11-08
 
