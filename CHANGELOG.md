@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Selecting text with the space bar (slide or long-press space, then tap a
+  second finger) now works in text fields: the arrow keys sent while
+  selecting are wrapped in a real Shift press.
+- Shift always cycles one capital → caps lock → off, however fast you tap.
+  Before, quick triple taps left caps lock on.
+
+### Changed
+- Accent hints in key corners are larger, bold and brighter, drawn as the
+  plain accent marks (` ´ ^ ~ ¸ ˇ ¯ ¨) instead of small dotted-circle glyphs.
+
 ## [0.2.0] - 2026-11-08
 
 ### Added
