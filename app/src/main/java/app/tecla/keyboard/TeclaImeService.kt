@@ -58,14 +58,16 @@ class TeclaImeService :
         pane.visibility = View.GONE
 
         // From Android 15 the keyboard window is drawn behind the navigation bar: fill that area with
-        // the theme background so the keys sit above the gesture bar.
+        // the theme background so the keys sit above the gesture bar and the switch/hide buttons.
         val filler = View(this)
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(keys, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(filler, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             root.setOnApplyWindowInsetsListener { _, insets ->
-                val bottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+                // systemBars covers both the gesture bar (navigationBars) and the bar with the keyboard's
+                // own switch/hide buttons, which Android reports as a caption bar.
+                val bottom = insets.getInsets(WindowInsets.Type.systemBars()).bottom
                 val params = filler.layoutParams
                 if (params.height != bottom) {
                     params.height = bottom
