@@ -149,8 +149,8 @@ object Layouts {
         listOf(
             pageKey,
             fnKey,
-            Key(KeyAction.Space, "space", 5f, KeyStyle.SPACE),
-            Key(KeyAction.Enter, "return", 2.5f, KeyStyle.ENTER)
+            Key(KeyAction.Space, "space", 5.5f, KeyStyle.SPACE),
+            Key(KeyAction.Enter, "return", 2f, KeyStyle.ENTER)
         )
     )
 

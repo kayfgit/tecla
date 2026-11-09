@@ -161,7 +161,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         when (val action = key.action) {
             KeyAction.Shift -> drawShift(canvas, cx, cy, fg)
             KeyAction.Delete -> drawDelete(canvas, r, fg, pressed)
-            KeyAction.Enter -> drawLabel(canvas, state.enterLabel, cx, cy, sp(16f), fg)
+            KeyAction.Enter -> state.enterLabel?.let { drawLabel(canvas, it, cx, cy, sp(16f), fg) } ?: drawReturn(canvas, cx, cy, fg)
             KeyAction.Fn -> drawLabel(canvas, key.label, cx, cy, sp(16f), if (state.layout.page == KeyboardPage.FN) theme.accent else fg)
             is KeyAction.Text -> drawLabel(canvas, letterCase(key.label), cx, cy, sp(23f), fg)
             is KeyAction.Special -> drawLabel(canvas, key.label, cx, cy, sp(if (action.key.label.length > 3) 13f else 17f), fg)
@@ -267,6 +267,28 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             fillPaint.color = shapeColor
             canvas.drawRect(cx - s / 4.5f, y + s / 2 + dp(2.5f), cx + s / 4.5f, y + s / 2 + dp(4f), fillPaint)
         }
+    }
+
+    /** Return arrow (↵): a line down from the top right, then left to an arrowhead. */
+    private fun drawReturn(canvas: Canvas, cx: Float, cy: Float, color: Int) {
+        val w = dp(20f)
+        val h = dp(11f)
+        val head = dp(5f)
+        val left = cx - w / 2
+        val right = cx + w / 2
+        val bottom = cy + h / 2
+        val oldWidth = strokePaint.strokeWidth
+        strokePaint.strokeWidth = dp(2f)
+        strokePaint.color = color
+        path.reset()
+        path.moveTo(right, cy - h / 2)
+        path.lineTo(right, bottom)
+        path.lineTo(left, bottom)
+        path.moveTo(left + head, bottom - head)
+        path.lineTo(left, bottom)
+        path.lineTo(left + head, bottom + head)
+        canvas.drawPath(path, strokePaint)
+        strokePaint.strokeWidth = oldWidth
     }
 
     /**

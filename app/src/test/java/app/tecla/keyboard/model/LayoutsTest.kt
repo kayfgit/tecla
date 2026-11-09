@@ -66,6 +66,15 @@ class LayoutsTest {
     }
 
     @Test
+    fun `return key is two units wide and space takes the room it gave up`() {
+        for (layout in all) {
+            val bottom = layout.rows.last().keys
+            assertEquals(2f, bottom.first { it.action == KeyAction.Enter }.width)
+            assertEquals(5.5f, bottom.first { it.action == KeyAction.Space }.width)
+        }
+    }
+
+    @Test
     fun `fn page has all twelve F keys and the arrows`() {
         val specials = Layouts.fn.rows.flatMap { it.keys }.mapNotNull { (it.action as? KeyAction.Special)?.key }
         assertTrue(specials.containsAll(SpecialKey.entries))

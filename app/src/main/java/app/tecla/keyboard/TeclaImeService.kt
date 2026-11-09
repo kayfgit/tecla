@@ -19,6 +19,7 @@ import app.tecla.keyboard.logic.Accents
 import app.tecla.keyboard.logic.DeleteOp
 import app.tecla.keyboard.logic.ShiftController
 import app.tecla.keyboard.logic.TextEdits
+import app.tecla.keyboard.logic.enterKeyStyle
 import app.tecla.keyboard.model.Accent
 import app.tecla.keyboard.model.KeyAction
 import app.tecla.keyboard.model.KeyboardPage
@@ -162,7 +163,7 @@ class TeclaImeService :
 
     private fun render() {
         val view = keyboardView ?: return
-        val (label, accent) = enterKeyStyle(currentInputEditorInfo)
+        val (label, accent) = enterKeyStyle(currentInputEditorInfo?.imeOptions ?: 0)
         view.setState(
             KeyboardState(
                 layout = Layouts.forPage(page),
@@ -208,19 +209,6 @@ class TeclaImeService :
         val ic = currentInputConnection
         val caps = isProseField(info) && ic != null && selStart == selEnd && ic.getCursorCapsMode(info.inputType) != 0
         shift.applyAutoCaps(caps)
-    }
-
-    private fun enterKeyStyle(info: EditorInfo?): Pair<String, Boolean> {
-        if (info == null || info.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0) return "return" to false
-        return when (info.imeOptions and EditorInfo.IME_MASK_ACTION) {
-            EditorInfo.IME_ACTION_GO -> "go" to true
-            EditorInfo.IME_ACTION_SEARCH -> "search" to true
-            EditorInfo.IME_ACTION_SEND -> "send" to true
-            EditorInfo.IME_ACTION_DONE -> "done" to true
-            EditorInfo.IME_ACTION_NEXT -> "next" to false
-            EditorInfo.IME_ACTION_PREVIOUS -> "previous" to false
-            else -> "return" to false
-        }
     }
 
     // ---------------------------------------------------------------- key events
