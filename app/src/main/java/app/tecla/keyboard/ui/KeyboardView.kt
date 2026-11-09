@@ -271,19 +271,23 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         }
     }
 
-    /** Return arrow (↵): a line down from the top right, then left to an arrowhead. */
+    /**
+     * Return arrow (↵): a line down from the top right, then left to an arrowhead. The arrowhead
+     * reaches below the horizontal line, so the whole shape (not just the line) is centered on [cy].
+     */
     private fun drawReturn(canvas: Canvas, cx: Float, cy: Float, color: Int) {
         val w = dp(20f)
         val h = dp(11f)
         val head = dp(5f)
         val left = cx - w / 2
         val right = cx + w / 2
-        val bottom = cy + h / 2
+        val top = cy - (h + head) / 2
+        val bottom = top + h
         val oldWidth = strokePaint.strokeWidth
         strokePaint.strokeWidth = dp(2f)
         strokePaint.color = color
         path.reset()
-        path.moveTo(right, cy - h / 2)
+        path.moveTo(right, top)
         path.lineTo(right, bottom)
         path.lineTo(left, bottom)
         path.moveTo(left + head, bottom - head)
