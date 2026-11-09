@@ -9,10 +9,12 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import app.tecla.keyboard.logic.Accents
 import app.tecla.keyboard.logic.DeleteOp
 import app.tecla.keyboard.logic.ShiftController
@@ -35,6 +37,7 @@ class TeclaImeService :
 
     private var keyboardView: KeyboardView? = null
     private var emojiPane: EmojiPane? = null
+    private var navFiller: View? = null
     private val shift = ShiftController()
     private var page = KeyboardPage.LETTERS
     private var selStart = 0
@@ -44,17 +47,39 @@ class TeclaImeService :
     private var alt = false
 
     override fun onCreateInputView(): View {
-        val root = FrameLayout(this)
+        val keys = FrameLayout(this)
         val keyboard = KeyboardView(this, this)
-        root.addView(keyboard, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        keys.addView(keyboard, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         val pane = EmojiPane(this, this)
         val paneParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, keyboard.keysHeight).apply {
             topMargin = keyboard.keysTop
         }
-        root.addView(pane, paneParams)
+        keys.addView(pane, paneParams)
         pane.visibility = View.GONE
+
+        // From Android 15 the keyboard window is drawn behind the navigation bar: fill that area with
+        // the theme background so the keys sit above the gesture bar and the switch/hide buttons.
+        val filler = View(this)
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(keys, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        root.addView(filler, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            root.setOnApplyWindowInsetsListener { _, insets ->
+                // systemBars covers both the gesture bar (navigationBars) and the bar with the keyboard's
+                // own switch/hide buttons, which Android reports as a caption bar.
+                val bottom = insets.getInsets(WindowInsets.Type.systemBars()).bottom
+                val params = filler.layoutParams
+                if (params.height != bottom) {
+                    params.height = bottom
+                    filler.layoutParams = params
+                }
+                insets
+            }
+        }
+
         keyboardView = keyboard
         emojiPane = pane
+        navFiller = filler
         applyTheme()
         render()
         return root
@@ -125,7 +150,14 @@ class TeclaImeService :
         val theme = KeyboardTheme.BLACKOUT
         keyboardView?.setTheme(theme)
         emojiPane?.setTheme(theme)
-        window?.window?.navigationBarColor = theme.background
+        navFiller?.setBackgroundColor(theme.background)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) setLegacyNavigationBarColor(theme.background)
+    }
+
+    /** Before Android 15 the system draws the navigation bar under the keyboard; color it to match. */
+    @Suppress("DEPRECATION")
+    private fun setLegacyNavigationBarColor(color: Int) {
+        window?.window?.navigationBarColor = color
     }
 
     private fun render() {

@@ -1,17 +1,18 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jlleitschuh.gradle.ktlint")
 }
 
 android {
     namespace = "app.tecla.keyboard"
-    compileSdk = 34
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "app.tecla.keyboard"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 37
         versionCode = 2
         versionName = "0.2.0"
     }
@@ -27,15 +28,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        allWarningsAsErrors = true
-    }
-
     lint {
         warningsAsErrors = false
         abortOnError = true
         checkDependencies = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        allWarningsAsErrors.set(true)
     }
 }
 
