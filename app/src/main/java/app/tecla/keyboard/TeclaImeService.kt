@@ -20,6 +20,7 @@ import app.tecla.keyboard.logic.DeleteOp
 import app.tecla.keyboard.logic.ShiftController
 import app.tecla.keyboard.logic.TextEdits
 import app.tecla.keyboard.logic.enterKeyStyle
+import app.tecla.keyboard.logic.navBarSpace
 import app.tecla.keyboard.model.Accent
 import app.tecla.keyboard.model.KeyAction
 import app.tecla.keyboard.model.KeyboardPage
@@ -67,8 +68,10 @@ class TeclaImeService :
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             root.setOnApplyWindowInsetsListener { _, insets ->
                 // systemBars covers both the gesture bar (navigationBars) and the bar with the keyboard's
-                // own switch/hide buttons, which Android reports as a caption bar.
-                val bottom = insets.getInsets(WindowInsets.Type.systemBars()).bottom
+                // own switch/hide buttons, which Android reports as a caption bar. While the bars are
+                // hidden for a moment the visible inset is 0, so also use their size ignoring visibility.
+                val bars = WindowInsets.Type.systemBars()
+                val bottom = navBarSpace(insets.getInsets(bars).bottom, insets.getInsetsIgnoringVisibility(bars).bottom)
                 val params = filler.layoutParams
                 if (params.height != bottom) {
                     params.height = bottom
@@ -103,6 +106,8 @@ class TeclaImeService :
         }
         selStart = info.initialSelStart
         selEnd = info.initialSelEnd
+        // Ask for fresh insets each time the keyboard opens, so a stale navigation bar size never sticks.
+        navFiller?.requestApplyInsets()
         applyTheme()
         refreshAutoCaps()
         render()

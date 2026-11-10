@@ -15,6 +15,9 @@ All notable changes to this project are documented here. The format follows
   Tab above a.
 
 ### Fixed
+- The keyboard no longer sinks over the navigation bar and its switch/hide
+  buttons. Before, if the bar was hidden for a moment (a fullscreen app or a
+  transition), the keys could stay low until you switched keyboards.
 - Selecting text with the space bar (slide or long-press space, then tap a
   second finger) now works in text fields: the arrow keys sent while
   selecting are wrapped in a real Shift press.
