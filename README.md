@@ -50,3 +50,12 @@ python tools/generate_emoji.py path/to/emoji-test.txt
 ```
 
 Download `emoji-test.txt` from <https://unicode.org/Public/emoji/latest/emoji-test.txt>.
+
+## License
+
+Copyright (C) 2026 Kayf
+
+tecla is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. See [LICENSE](LICENSE).

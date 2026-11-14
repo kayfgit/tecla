@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format follows
   Before, quick triple taps left caps lock on.
 
 ### Changed
+- tecla is now licensed under the GNU GPL v3 or later (GPL-3.0-or-later), copyright Kayf.
 - Targets Android 17 (API 37). Builds with Android Gradle Plugin 9.5.1
   (built-in Kotlin), Gradle 9.9.0 and ktlint Gradle plugin 14.2.0.
 - On Android 15 and later the keyboard fills the area behind the navigation
