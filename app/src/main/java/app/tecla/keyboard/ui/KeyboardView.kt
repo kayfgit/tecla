@@ -10,12 +10,15 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import app.tecla.keyboard.logic.CursorSpeed
 import app.tecla.keyboard.logic.DeleteGestureTracker
 import app.tecla.keyboard.logic.DeleteOp
+import app.tecla.keyboard.logic.RepeatTiming
 import app.tecla.keyboard.logic.ShiftMode
 import app.tecla.keyboard.logic.TrackpadAccumulator
 import app.tecla.keyboard.logic.cornerOf
@@ -26,6 +29,7 @@ import app.tecla.keyboard.model.KeyStyle
 import app.tecla.keyboard.model.KeyboardGeometry
 import app.tecla.keyboard.model.KeyboardPage
 import app.tecla.keyboard.model.PlacedKey
+import app.tecla.keyboard.model.heldAction
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -120,7 +124,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         val cursorMode = pointers.values.any { it.mode == Mode.CURSOR }
         for (pk in geometry().keys) drawKey(canvas, pk, cursorMode)
         for (p in pointers.values) {
-            if (p.mode == Mode.PRESS && p.key.key.style == KeyStyle.CHARACTER) drawBalloon(canvas, p)
+            val held = p.mode == Mode.PRESS || p.mode == Mode.KEY_REPEAT
+            if (held && p.key.key.style == KeyStyle.CHARACTER) drawBalloon(canvas, p)
         }
     }
 
@@ -160,7 +165,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         when (val action = key.action) {
             KeyAction.Shift -> drawShift(canvas, cx, cy, fg)
             KeyAction.Delete -> drawDelete(canvas, r, fg, pressed)
-            KeyAction.Enter -> drawLabel(canvas, state.enterLabel, cx, cy, sp(16f), fg)
+            KeyAction.Enter -> state.enterLabel?.let { drawLabel(canvas, it, cx, cy, sp(16f), fg) } ?: drawReturn(canvas, cx, cy, fg)
+            KeyAction.Ctrl -> drawLabel(canvas, key.label, cx, cy, sp(16f), if (state.ctrl) theme.accent else fg)
             KeyAction.Fn -> drawLabel(canvas, key.label, cx, cy, sp(16f), if (state.layout.page == KeyboardPage.FN) theme.accent else fg)
             is KeyAction.Text -> drawLabel(canvas, letterCase(key.label), cx, cy, sp(23f), fg)
             is KeyAction.Special -> drawLabel(canvas, key.label, cx, cy, sp(if (action.key.label.length > 3) 13f else 17f), fg)
@@ -172,6 +178,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private fun cornerLabel(action: KeyAction): String = when (action) {
         is KeyAction.Text -> action.text
         is KeyAction.Dead -> action.accent.label
+        is KeyAction.Special -> action.key.label
         KeyAction.Ctrl -> "ctrl"
         KeyAction.Alt -> "alt"
         KeyAction.SwitchKeyboard -> "⌨︎"
@@ -266,6 +273,32 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             fillPaint.color = shapeColor
             canvas.drawRect(cx - s / 4.5f, y + s / 2 + dp(2.5f), cx + s / 4.5f, y + s / 2 + dp(4f), fillPaint)
         }
+    }
+
+    /**
+     * Return arrow (↵): a line down from the top right, then left to an arrowhead. The arrowhead
+     * reaches below the horizontal line, so the whole shape (not just the line) is centered on [cy].
+     */
+    private fun drawReturn(canvas: Canvas, cx: Float, cy: Float, color: Int) {
+        val w = dp(20f)
+        val h = dp(11f)
+        val head = dp(5f)
+        val left = cx - w / 2
+        val right = cx + w / 2
+        val top = cy - (h + head) / 2
+        val bottom = top + h
+        val oldWidth = strokePaint.strokeWidth
+        strokePaint.strokeWidth = dp(2f)
+        strokePaint.color = color
+        path.reset()
+        path.moveTo(right, top)
+        path.lineTo(right, bottom)
+        path.lineTo(left, bottom)
+        path.moveTo(left + head, bottom - head)
+        path.lineTo(left, bottom)
+        path.lineTo(left + head, bottom + head)
+        canvas.drawPath(path, strokePaint)
+        strokePaint.strokeWidth = oldWidth
     }
 
     /**
@@ -404,9 +437,12 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         var mode = Mode.PRESS
         var corner: Corner? = null
         val deleteTracker = DeleteGestureTracker(dp(18f))
-        val trackpad = TrackpadAccumulator(dp(15f), dp(40f))
+        val trackpad = TrackpadAccumulator(dp(CursorSpeed.STEP_X_DP), dp(CursorSpeed.STEP_Y_DP))
         var repeatCount = 0
         var pending: Runnable? = null
+
+        /** When the pending step was due, in [SystemClock.uptimeMillis] time. */
+        var dueAt = 0L
     }
 
     private val pointers = LinkedHashMap<Int, Pointer>()
@@ -439,10 +475,13 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             haptic(HapticFeedbackConstants.CLOCK_TICK)
             return
         }
-        // Fast two-thumb typing: commit any key still held before handling the new one.
+        // Fast two-thumb typing: commit any key still held before handling the new one,
+        // and stop a key that is repeating.
         for (p in pointers.values) {
-            if (p.mode == Mode.PRESS && p.key.key.style == KeyStyle.CHARACTER) {
-                fire(p)
+            if (p.key.key.style != KeyStyle.CHARACTER) continue
+            if (p.mode == Mode.PRESS) fire(p)
+            if (p.mode == Mode.PRESS || p.mode == Mode.KEY_REPEAT) {
+                cancelPending(p)
                 p.mode = Mode.DONE
             }
         }
@@ -466,10 +505,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     listener.onShowKeyboardPicker()
                 }
             }
-            is KeyAction.Special -> if (action.key.repeats) {
-                schedule(p, REPEAT_DELAY_MS) { keyRepeat(p, action) }
-            }
-            else -> Unit
+            else -> scheduleKeyRepeat(p)
         }
     }
 
@@ -489,8 +525,12 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
                     if (p.deleteTracker.repeats) schedule(p, REPEAT_DELAY_MS) { swipeRepeat(p) }
                 }
                 else -> if (p.key.key.corners.isNotEmpty()) {
-                    val corner = cornerOf(x - p.startX, y - p.startY, cornerSwipeThreshold)
-                    p.corner = corner?.takeIf { it in p.key.key.corners }
+                    val corner = cornerOf(x - p.startX, y - p.startY, cornerSwipeThreshold)?.takeIf { it in p.key.key.corners }
+                    if (corner != p.corner) {
+                        p.corner = corner
+                        // Holding still on a new corner (or back on the key) restarts the repeat wait.
+                        if (p.key.key.style == KeyStyle.CHARACTER) scheduleKeyRepeat(p)
+                    }
                 }
             }
             Mode.CURSOR -> {
@@ -549,34 +589,58 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         invalidate()
     }
 
-    /** Holding delete repeats characters, then switches to whole words (like iPhone). */
+    /** Holding delete repeats letters, speeding up the longer it is held (like the Samsung keyboard). */
     private fun deleteRepeat(p: Pointer) {
         if (p.mode != Mode.PRESS && p.mode != Mode.DELETE_REPEAT) return
         p.mode = Mode.DELETE_REPEAT
         p.repeatCount++
-        val words = p.repeatCount > WORD_REPEAT_AFTER
-        listener.onDelete(if (words) DeleteOp.WORD_BACK else DeleteOp.CHAR_BACK, 1)
-        if (words) haptic(HapticFeedbackConstants.CLOCK_TICK)
-        schedule(p, if (words) WORD_REPEAT_INTERVAL_MS else CHAR_REPEAT_INTERVAL_MS) { deleteRepeat(p) }
+        listener.onDelete(DeleteOp.CHAR_BACK, 1)
+        scheduleNext(p, RepeatTiming.deleteInterval(p.repeatCount)) { deleteRepeat(p) }
     }
 
-    /** A held delete swipe repeats with the same timing as holding the delete key. */
+    /** A held delete swipe repeats: letters forward speed up like holding delete, words at a steady pace. */
     private fun swipeRepeat(p: Pointer) {
         val op = p.deleteTracker.op ?: return
-        if (p.deleteTracker.engaged) performDelete(op, 1)
-        val interval = if (op == DeleteOp.CHAR_FORWARD) CHAR_REPEAT_INTERVAL_MS else WORD_REPEAT_INTERVAL_MS
-        schedule(p, interval) { swipeRepeat(p) }
+        if (p.deleteTracker.engaged) {
+            performDelete(op, 1)
+            p.repeatCount++
+        }
+        val interval = if (op == DeleteOp.CHAR_FORWARD) RepeatTiming.deleteInterval(p.repeatCount) else WORD_REPEAT_INTERVAL_MS
+        scheduleNext(p, interval) { swipeRepeat(p) }
     }
 
-    /** Arrow keys and forward delete on the Fn page repeat while held. */
+    /** Starts the hold-to-repeat wait for whatever the finger is on now (the key or one of its corners). */
+    private fun scheduleKeyRepeat(p: Pointer) {
+        val held = p.key.key.heldAction(p.corner)
+        if (held == null) {
+            cancelPending(p)
+        } else {
+            schedule(p, REPEAT_DELAY_MS) { keyRepeat(p, held) }
+        }
+    }
+
+    /** Letters, symbols, accent marks, arrows and forward delete repeat while held. */
     private fun keyRepeat(p: Pointer, action: KeyAction) {
         if (p.mode != Mode.PRESS && p.mode != Mode.KEY_REPEAT) return
         p.mode = Mode.KEY_REPEAT
         listener.onAction(action)
-        schedule(p, CHAR_REPEAT_INTERVAL_MS) { keyRepeat(p, action) }
+        scheduleNext(p, RepeatTiming.KEY_INTERVAL_MS) { keyRepeat(p, action) }
     }
 
-    private fun schedule(p: Pointer, delayMs: Long, block: () -> Unit) {
+    private fun schedule(p: Pointer, delayMs: Long, block: () -> Unit) = scheduleAt(p, SystemClock.uptimeMillis() + delayMs, block)
+
+    /**
+     * Schedules the next step of a repeat [intervalMs] after the previous one was due (not after it
+     * ran), so the time each repeat takes does not pile up and slow fast repeats down. After a long
+     * stall it restarts from now instead of firing a burst to catch up.
+     */
+    private fun scheduleNext(p: Pointer, intervalMs: Long, block: () -> Unit) {
+        val now = SystemClock.uptimeMillis()
+        val due = p.dueAt + intervalMs
+        scheduleAt(p, if (now - due > 2 * intervalMs) now else due, block)
+    }
+
+    private fun scheduleAt(p: Pointer, atMs: Long, block: () -> Unit) {
         cancelPending(p)
         val r = Runnable {
             p.pending = null
@@ -586,7 +650,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
             }
         }
         p.pending = r
-        handler.postDelayed(r, delayMs)
+        p.dueAt = atMs
+        handler.postAtTime(r, atMs)
     }
 
     private fun cancelPending(p: Pointer) {
@@ -600,10 +665,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
 
     private companion object {
         const val ROWS = 4
-        const val REPEAT_DELAY_MS = 400L
-        const val CHAR_REPEAT_INTERVAL_MS = 55L
+        const val REPEAT_DELAY_MS = RepeatTiming.START_DELAY_MS
         const val WORD_REPEAT_INTERVAL_MS = 230L
-        const val WORD_REPEAT_AFTER = 18
         const val SPACE_LONG_PRESS_MS = 350L
         const val LONG_PRESS_MS = 450L
     }

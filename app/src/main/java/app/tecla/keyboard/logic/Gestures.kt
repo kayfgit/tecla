@@ -65,6 +65,12 @@ data class CursorSteps(val x: Int, val y: Int) {
     val isZero get() = x == 0 && y == 0
 }
 
+/** How far (in dp) the finger travels on the space bar for one cursor step. Smaller is faster. */
+object CursorSpeed {
+    const val STEP_X_DP = 13f
+    const val STEP_Y_DP = 35f
+}
+
 /** Space-bar trackpad: converts finger movement into whole cursor steps, carrying the remainder over. */
 class TrackpadAccumulator(private val stepX: Float, private val stepY: Float) {
     private var accX = 0f

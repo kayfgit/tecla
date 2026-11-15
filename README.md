@@ -8,8 +8,10 @@ Keyboard and Unexpected Keyboard.
 - iPhone-style layout in a blackout (pure black) theme.
 - Space-bar trackpad for moving the cursor and selecting text.
 - Delete key with swipe modes: words back/forward, letters forward, line back.
-- Corner swipes (Unexpected Keyboard style): accent dead keys, Ctrl, and an Fn key
-  with Alt, keyboard switching, emoji and settings.
+- Corner swipes (Unexpected Keyboard style): numbers, symbols and accent dead keys
+  in the letters' corners, and an Fn key with Alt, keyboard switching, emoji and
+  settings. A Ctrl key for shortcuts.
+- Hold any letter, number or symbol to repeat it.
 - Fn page with F1-F12, Esc, Tab, Home/End, Page Up/Down and arrows.
 - Emoji picker with recents.
 

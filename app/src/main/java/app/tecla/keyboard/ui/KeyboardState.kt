@@ -10,7 +10,8 @@ data class KeyboardState(
     val layout: KeyboardLayout = Layouts.letters,
     val shiftMode: ShiftMode = ShiftMode.OFF,
     val upperCase: Boolean = false,
-    val enterLabel: String = "return",
+    /** Word on the return key, or null for the return arrow icon. */
+    val enterLabel: String? = null,
     val enterAccent: Boolean = false,
     val pendingAccent: Accent? = null,
     val ctrl: Boolean = false,

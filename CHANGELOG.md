@@ -6,7 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Holding a letter, number or symbol keeps typing it until you let go: after
+  400ms, about 30 a second. Holding on an accent corner repeats the accent
+  mark itself (^^^^), and holding on a symbol corner repeats the symbol.
+- Numbers and symbols in the letters' corners (Unexpected Keyboard layout):
+  1–0 in the top-right corners of q–p, symbols around them, Esc under q and
+  Tab above a.
+
 ### Fixed
+- The keyboard no longer sinks over the navigation bar and its switch/hide
+  buttons. Before, if the bar was hidden for a moment (a fullscreen app or a
+  transition), the keys could stay low until you switched keyboards.
 - Selecting text with the space bar (slide or long-press space, then tap a
   second finger) now works in text fields: the arrow keys sent while
   selecting are wrapped in a real Shift press.
@@ -22,6 +33,25 @@ All notable changes to this project are documented here. The format follows
   above them.
 - Accent hints in key corners are larger, bold and brighter, drawn as the
   plain accent marks (` ´ ^ ~ ¸ ˇ ¯ ¨) instead of small dotted-circle glyphs.
+- The return key is smaller (the space bar is wider) and shows a return
+  arrow instead of the word "return". Go, search, send, done, next and
+  previous still show their words.
+- The space-bar cursor moves about 15% faster (13dp per character, 35dp per
+  line).
+- Holding delete follows the Samsung Keyboard (measured on a Galaxy A36): it
+  starts after 400ms, deletes about 30 letters a second, then speeds up to
+  about 75 a second. Swiping delete up repeats the same way.
+- The bottom-left key is a plain Ctrl key (tap it, then press a key for
+  Ctrl+C, Ctrl+V…).
+- Shift no longer turns ß into "SS".
+
+### Removed
+- The 123 key and the numbers/symbols pages; their characters are in the
+  letter corners now. Number, phone and date fields still open a numbers
+  page on their own.
+- Holding delete no longer switches to deleting whole words; swipe left on
+  delete for words.
+- £, ¥ and • (they were only on the symbols page).
 
 ## [0.2.0] - 2026-11-08
 
