@@ -1,6 +1,7 @@
 package app.tecla.keyboard
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.SystemClock
@@ -25,6 +26,7 @@ import app.tecla.keyboard.model.Accent
 import app.tecla.keyboard.model.KeyAction
 import app.tecla.keyboard.model.KeyboardPage
 import app.tecla.keyboard.model.Layouts
+import app.tecla.keyboard.model.LetterLayout
 import app.tecla.keyboard.model.SpecialKey
 import app.tecla.keyboard.ui.EmojiPane
 import app.tecla.keyboard.ui.KeyboardState
@@ -47,6 +49,28 @@ class TeclaImeService :
     private var pendingAccent: Accent? = null
     private var ctrl = false
     private var alt = false
+    private lateinit var settings: TeclaSettings
+    private var letterLayout = LetterLayout.QWERTY
+
+    /** Picks up a new keyboard layout right away, e.g. when it is changed on the setup screen. */
+    private val settingsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == TeclaSettings.KEY_LETTER_LAYOUT) {
+            letterLayout = settings.letterLayout
+            render()
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        settings = TeclaSettings(this)
+        letterLayout = settings.letterLayout
+        settings.prefs.registerOnSharedPreferenceChangeListener(settingsListener)
+    }
+
+    override fun onDestroy() {
+        settings.prefs.unregisterOnSharedPreferenceChangeListener(settingsListener)
+        super.onDestroy()
+    }
 
     override fun onCreateInputView(): View {
         val keys = FrameLayout(this)
@@ -171,7 +195,7 @@ class TeclaImeService :
         val (label, accent) = enterKeyStyle(currentInputEditorInfo?.imeOptions ?: 0)
         view.setState(
             KeyboardState(
-                layout = Layouts.forPage(page),
+                layout = Layouts.forPage(page, letterLayout),
                 shiftMode = shift.mode,
                 upperCase = shift.isUpperCase,
                 enterLabel = label,

@@ -125,6 +125,22 @@ data class KeyboardLayout(val page: KeyboardPage, val rows: List<KeyRow>)
 
 const val UNITS_PER_ROW = 10f
 
+/** Letter arrangements to choose from in settings: the top, home and bottom letter rows. */
+enum class LetterLayout(val label: String, val rows: List<String>) {
+    QWERTY("QWERTY", listOf("qwertyuiop", "asdfghjkl", "zxcvbnm")),
+    QWERTZ("QWERTZ", listOf("qwertzuiop", "asdfghjkl", "yxcvbnm")),
+    AZERTY("AZERTY", listOf("azertyuiop", "qsdfghjklm", "wxcvbn'")),
+    DVORAK("Dvorak", listOf("',.pyfgcrl", "aoeuidhtns", "qjkxbmwvz")),
+    COLEMAK("Colemak", listOf("qwfpgjluy;", "arstdhneio", "zxcvbkm")),
+    COLEMAK_DH("Colemak-DH", listOf("qwfpbjluy;", "arstgmneio", "zxcdvkh")),
+    WORKMAN("Workman", listOf("qdrwbjfup;", "ashtgyneoi", "zxmcvkl"));
+
+    companion object {
+        /** The layout saved under [name], or QWERTY if none (or an unknown one) was saved. */
+        fun fromName(name: String?): LetterLayout = entries.firstOrNull { it.name == name } ?: QWERTY
+    }
+}
+
 /** iPhone-style layouts with numbers, symbols and accents in the letters' corners (Unexpected Keyboard style). */
 object Layouts {
     private val TL = Corner.TOP_LEFT
@@ -168,8 +184,17 @@ object Layouts {
         'm' to mapOf(TR to t("\""), BL to t("'"))
     )
 
-    private fun letters(s: String): List<Key> = s.map { c ->
-        Key(KeyAction.Text(c.toString()), c.toString(), corners = letterCorners[c].orEmpty())
+    /**
+     * Letter keys for one row of [layout]. Corners belong to the spot, not the letter: each key gets
+     * the corners of the QWERTY key in the same row and position, so numbers, symbols and accents
+     * stay where they are whichever layout is picked.
+     */
+    private fun letterKeys(layout: LetterLayout, row: Int, width: Float): List<Key> {
+        val qwerty = LetterLayout.QWERTY.rows[row]
+        return layout.rows[row].mapIndexed { i, c ->
+            val corners = qwerty.getOrNull(i)?.let { letterCorners[it] }.orEmpty()
+            Key(KeyAction.Text(c.toString()), c.toString(), width, corners = corners)
+        }
     }
 
     private fun chars(s: String, width: Float = 1f): List<Key> = s.map { Key(KeyAction.Text(it.toString()), it.toString(), width) }
@@ -216,15 +241,33 @@ object Layouts {
         )
     )
 
-    val letters = KeyboardLayout(
-        KeyboardPage.LETTERS,
-        listOf(
-            KeyRow(letters("qwertyuiop")),
-            KeyRow(letters("asdfghjkl"), inset = 0.5f),
-            KeyRow(listOf(Key(KeyAction.Shift, "shift", 1.5f, KeyStyle.FUNCTION)) + letters("zxcvbnm") + listOf(delete)),
-            bottomRow
+    private fun buildLetters(layout: LetterLayout): KeyboardLayout {
+        val (top, home, bottom) = layout.rows
+        // Short home rows (9 letters) are centered. Long bottom rows (Dvorak's 9) narrow shift and
+        // their letters; delete keeps its full width so its corner icons stay readable.
+        val homeInset = (UNITS_PER_ROW - home.length) / 2
+        val shiftWidth = if (bottom.length <= 7) 1.5f else 1f
+        val bottomWidth = (UNITS_PER_ROW - shiftWidth - delete.width) / bottom.length
+        val shift = Key(KeyAction.Shift, "shift", shiftWidth, KeyStyle.FUNCTION)
+        val bottomDelete = delete
+        return KeyboardLayout(
+            KeyboardPage.LETTERS,
+            listOf(
+                KeyRow(letterKeys(layout, 0, UNITS_PER_ROW / top.length)),
+                KeyRow(letterKeys(layout, 1, 1f), inset = homeInset),
+                KeyRow(listOf(shift) + letterKeys(layout, 2, bottomWidth) + listOf(bottomDelete)),
+                bottomRow
+            )
         )
-    )
+    }
+
+    private val letterLayouts: Map<LetterLayout, KeyboardLayout> = LetterLayout.entries.associateWith { buildLetters(it) }
+
+    /** The letters page in [layout]. */
+    fun letters(layout: LetterLayout): KeyboardLayout = letterLayouts.getValue(layout)
+
+    /** The QWERTY letters page. */
+    val letters: KeyboardLayout get() = letters(LetterLayout.QWERTY)
 
     /** Shown on its own for number, phone and date fields; there is no key that switches to it. */
     val numbers = KeyboardLayout(
@@ -263,8 +306,8 @@ object Layouts {
         )
     )
 
-    fun forPage(page: KeyboardPage): KeyboardLayout = when (page) {
-        KeyboardPage.LETTERS -> letters
+    fun forPage(page: KeyboardPage, layout: LetterLayout = LetterLayout.QWERTY): KeyboardLayout = when (page) {
+        KeyboardPage.LETTERS -> letters(layout)
         KeyboardPage.NUMBERS -> numbers
         KeyboardPage.FN -> fn
     }
