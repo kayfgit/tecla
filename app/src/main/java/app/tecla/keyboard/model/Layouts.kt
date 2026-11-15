@@ -15,12 +15,15 @@ enum class Accent(val combining: Char, val spacing: String) {
     val label: String get() = "◌$combining"
 }
 
-/** Keys from a physical keyboard that have no character, used on the Fn page. */
-enum class SpecialKey(val label: String, val repeats: Boolean = false) {
+/**
+ * Keys from a physical keyboard that have no character, used on the Fn page and in corners.
+ * [hint] is the shorter text shown when the key sits in a corner.
+ */
+enum class SpecialKey(val label: String, val repeats: Boolean = false, val hint: String = label) {
     ESCAPE("esc"),
     TAB("tab"),
-    HOME("home"),
-    END("end"),
+    HOME("home", hint = "|←"),
+    END("end", hint = "→|"),
     PAGE_UP("pg up"),
     PAGE_DOWN("pg dn"),
     INSERT("ins"),
@@ -175,7 +178,21 @@ object Layouts {
 
     private val delete = Key(KeyAction.Delete, "delete", 1.5f, KeyStyle.FUNCTION)
 
-    private val ctrlKey = Key(KeyAction.Ctrl, "ctrl", 1.25f, KeyStyle.FUNCTION)
+    private val ctrlKey = Key(
+        KeyAction.Ctrl,
+        "ctrl",
+        1.25f,
+        KeyStyle.FUNCTION,
+        corners = mapOf(TL to KeyAction.Special(SpecialKey.HOME), TR to KeyAction.Special(SpecialKey.END))
+    )
+
+    private val enterKey = Key(
+        KeyAction.Enter,
+        "return",
+        2f,
+        KeyStyle.ENTER,
+        corners = mapOf(TL to KeyAction.Special(SpecialKey.PAGE_UP), BL to KeyAction.Special(SpecialKey.PAGE_DOWN))
+    )
 
     private val fnKey = Key(
         KeyAction.Fn,
@@ -195,7 +212,7 @@ object Layouts {
             ctrlKey,
             fnKey,
             Key(KeyAction.Space, "space", 5.5f, KeyStyle.SPACE),
-            Key(KeyAction.Enter, "return", 2f, KeyStyle.ENTER)
+            enterKey
         )
     )
 

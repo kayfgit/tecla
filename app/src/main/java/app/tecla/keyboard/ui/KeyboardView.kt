@@ -178,7 +178,7 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     private fun cornerLabel(action: KeyAction): String = when (action) {
         is KeyAction.Text -> action.text
         is KeyAction.Dead -> action.accent.label
-        is KeyAction.Special -> action.key.label
+        is KeyAction.Special -> action.key.hint
         KeyAction.Ctrl -> "ctrl"
         KeyAction.Alt -> "alt"
         KeyAction.SwitchKeyboard -> "⌨︎"

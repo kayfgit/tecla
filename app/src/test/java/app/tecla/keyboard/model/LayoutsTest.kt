@@ -85,11 +85,37 @@ class LayoutsTest {
     }
 
     @Test
-    fun `bottom row is a plain ctrl key, then Fn with alt, keyboard, emoji and settings`() {
+    fun `ctrl has home and end, return has page up and page down`() {
+        for (layout in all) {
+            val bottom = layout.rows.last().keys
+            val ctrl = bottom.first { it.action == KeyAction.Ctrl }
+            assertEquals(
+                mapOf(Corner.TOP_LEFT to KeyAction.Special(SpecialKey.HOME), Corner.TOP_RIGHT to KeyAction.Special(SpecialKey.END)),
+                ctrl.corners
+            )
+            val enter = bottom.first { it.action == KeyAction.Enter }
+            assertEquals(
+                mapOf(
+                    Corner.TOP_LEFT to KeyAction.Special(SpecialKey.PAGE_UP),
+                    Corner.BOTTOM_LEFT to KeyAction.Special(SpecialKey.PAGE_DOWN)
+                ),
+                enter.corners
+            )
+        }
+    }
+
+    @Test
+    fun `corner hints on the narrow ctrl key are short`() {
+        assertEquals("|←", SpecialKey.HOME.hint)
+        assertEquals("→|", SpecialKey.END.hint)
+        assertEquals("pg up", SpecialKey.PAGE_UP.hint)
+    }
+
+    @Test
+    fun `bottom row is ctrl, then Fn with alt, keyboard, emoji and settings`() {
         for (layout in all) {
             val bottom = layout.rows.last().keys
             assertEquals(KeyAction.Ctrl, bottom[0].action)
-            assertTrue(bottom[0].corners.isEmpty())
             val fn = bottom[1]
             assertEquals(KeyAction.Fn, fn.action)
             assertEquals(
