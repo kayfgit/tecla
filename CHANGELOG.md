@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Keyboard layout setting on the setup screen: QWERTY, QWERTZ, AZERTY,
+  Dvorak, Colemak, Colemak-DH and Workman. Numbers, symbols and accents stay
+  in the same spots on every layout.
+- Home / End on the ctrl key's top-left / top-right corners, and Page Up /
+  Page Down on the return key's top-left / bottom-left corners.
 - Holding a letter, number or symbol keeps typing it until you let go: after
   400ms, about 30 a second. Holding on an accent corner repeats the accent
   mark itself (^^^^), and holding on a symbol corner repeats the symbol.

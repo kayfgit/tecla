@@ -7,7 +7,8 @@ Keyboard and Unexpected Keyboard.
 
 - iPhone-style layout in a blackout (pure black) theme.
 - Space-bar trackpad for moving the cursor and selecting text.
-- Delete key with swipe modes: words back/forward, letters forward, line back.
+- Delete key with corner swipes: words back/forward, letters forward, line back.
+- Layouts: QWERTY, QWERTZ, AZERTY, Dvorak, Colemak, Colemak-DH and Workman.
 - Corner swipes (Unexpected Keyboard style): numbers, symbols and accent dead keys
   in the letters' corners, and an Fn key with Alt, keyboard switching, emoji and
   settings. A Ctrl key for shortcuts.
