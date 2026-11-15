@@ -19,49 +19,59 @@ class GesturesTest {
     }
 
     @Test
-    fun `swipe left chooses word back exactly once`() {
+    fun `swipe to the top-left corner chooses word back exactly once`() {
         val t = tracker()
-        assertTrue(t.update(-12f, 0f))
+        assertTrue(t.update(-12f, -12f))
         assertEquals(DeleteOp.WORD_BACK, t.op)
         // Dragging further never fires again by distance; repeating is time-based.
-        assertFalse(t.update(-80f, 0f))
-        assertFalse(t.update(-200f, 0f))
+        assertFalse(t.update(-80f, -80f))
+        assertFalse(t.update(-200f, -150f))
     }
 
     @Test
-    fun `engaged follows whether the finger is still out past the threshold`() {
+    fun `engaged follows whether the finger is still out in the chosen corner`() {
         val t = tracker()
-        t.update(-12f, 0f)
+        t.update(-12f, -12f)
         assertTrue(t.engaged)
-        t.update(-4f, 0f)
+        t.update(-3f, -3f)
         assertFalse(t.engaged)
-        t.update(-30f, 0f)
+        t.update(-30f, -30f)
         assertTrue(t.engaged)
+        t.update(30f, -30f)
+        assertFalse(t.engaged)
     }
 
     @Test
-    fun `directions map to delete operations`() {
-        assertOp(DeleteOp.WORD_FORWARD, 15f, 2f)
-        assertOp(DeleteOp.CHAR_FORWARD, 2f, -15f)
-        assertOp(DeleteOp.LINE_BACK, 2f, 15f)
+    fun `corners map to delete operations, backwards on the left and forwards on the right`() {
+        assertOp(DeleteOp.WORD_FORWARD, 12f, -12f)
+        assertOp(DeleteOp.LINE_BACK, -12f, 12f)
+        assertOp(DeleteOp.CHAR_FORWARD, 12f, 12f)
     }
 
     @Test
     fun `line delete does not repeat but the others do`() {
-        val line = tracker().apply { update(0f, 15f) }
+        val line = tracker().apply { update(-12f, 12f) }
         assertFalse(line.repeats)
-        val word = tracker().apply { update(-15f, 0f) }
+        val word = tracker().apply { update(-12f, -12f) }
         assertTrue(word.repeats)
         assertFalse(tracker().repeats)
     }
 
     @Test
-    fun `direction stays locked once chosen`() {
+    fun `corner stays locked once chosen`() {
         val t = tracker()
-        t.update(-12f, 0f)
+        t.update(-12f, -12f)
         t.update(0f, 80f)
         assertEquals(DeleteOp.WORD_BACK, t.op)
         assertFalse(t.engaged)
+    }
+
+    @Test
+    fun `each delete operation has its corner for the key's icons`() {
+        assertEquals(Corner.TOP_LEFT, DeleteGestureTracker.cornerFor(DeleteOp.WORD_BACK))
+        assertEquals(Corner.TOP_RIGHT, DeleteGestureTracker.cornerFor(DeleteOp.WORD_FORWARD))
+        assertEquals(Corner.BOTTOM_LEFT, DeleteGestureTracker.cornerFor(DeleteOp.LINE_BACK))
+        assertEquals(Corner.BOTTOM_RIGHT, DeleteGestureTracker.cornerFor(DeleteOp.CHAR_FORWARD))
     }
 
     private fun assertOp(expected: DeleteOp, dx: Float, dy: Float) {

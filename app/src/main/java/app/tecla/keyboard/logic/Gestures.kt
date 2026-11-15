@@ -1,9 +1,7 @@
 package app.tecla.keyboard.logic
 
 import app.tecla.keyboard.model.Corner
-import kotlin.math.abs
 import kotlin.math.hypot
-import kotlin.math.max
 
 /** The corner a swipe of ([dx], [dy]) points at, or null if it is shorter than [threshold]. */
 fun cornerOf(dx: Float, dy: Float, threshold: Float): Corner? {
@@ -19,45 +17,48 @@ fun cornerOf(dx: Float, dy: Float, threshold: Float): Corner? {
 enum class DeleteOp { CHAR_BACK, CHAR_FORWARD, WORD_BACK, WORD_FORWARD, LINE_BACK }
 
 /**
- * Turns a swipe that starts on the delete key into a delete operation:
- * left = word backwards, right = word forwards, up = character forwards, down = to line start.
+ * Turns a swipe that starts on the delete key into a delete operation, by corner like the letter
+ * keys: backwards on the left (top-left = word, bottom-left = to line start), forwards on the right
+ * (top-right = word, bottom-right = character).
  *
- * The operation happens once when the direction is chosen. Repeating is time-based (handled by the
- * view, like holding a key): it only repeats while the finger stays out past the threshold.
+ * The operation happens once when the corner is chosen. Repeating is time-based (handled by the
+ * view, like holding a key): it only repeats while the finger stays out in that corner.
  */
 class DeleteGestureTracker(private val threshold: Float) {
     var op: DeleteOp? = null
         private set
 
-    /** True while the finger is past the threshold in the chosen direction. */
+    /** True while the finger is past the threshold in the chosen corner. */
     var engaged = false
         private set
 
     /** Whether holding the swipe should keep repeating the operation. */
     val repeats: Boolean get() = op != null && op != DeleteOp.LINE_BACK
 
-    /** Feeds a drag of ([dx], [dy]) from the touch-down point. Returns true when the direction was just chosen. */
+    /** Feeds a drag of ([dx], [dy]) from the touch-down point. Returns true when the corner was just chosen. */
     fun update(dx: Float, dy: Float): Boolean {
+        val corner = cornerOf(dx, dy, threshold)
         val current = op
         if (current == null) {
-            if (max(abs(dx), abs(dy)) < threshold) return false
-            op = if (abs(dx) >= abs(dy)) {
-                if (dx < 0) DeleteOp.WORD_BACK else DeleteOp.WORD_FORWARD
-            } else {
-                if (dy < 0) DeleteOp.CHAR_FORWARD else DeleteOp.LINE_BACK
-            }
+            if (corner == null) return false
+            op = opFor(corner)
             engaged = true
             return true
         }
-        val distance = when (current) {
-            DeleteOp.WORD_BACK -> -dx
-            DeleteOp.WORD_FORWARD -> dx
-            DeleteOp.CHAR_FORWARD -> -dy
-            DeleteOp.LINE_BACK -> dy
-            DeleteOp.CHAR_BACK -> 0f
-        }
-        engaged = distance >= threshold
+        engaged = corner != null && opFor(corner) == current
         return false
+    }
+
+    companion object {
+        private fun opFor(corner: Corner): DeleteOp = when (corner) {
+            Corner.TOP_LEFT -> DeleteOp.WORD_BACK
+            Corner.TOP_RIGHT -> DeleteOp.WORD_FORWARD
+            Corner.BOTTOM_LEFT -> DeleteOp.LINE_BACK
+            Corner.BOTTOM_RIGHT -> DeleteOp.CHAR_FORWARD
+        }
+
+        /** The corner of the delete key that does [op], or null for a plain tap's delete. */
+        fun cornerFor(op: DeleteOp): Corner? = Corner.entries.firstOrNull { opFor(it) == op }
     }
 }
 

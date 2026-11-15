@@ -302,8 +302,8 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
     }
 
     /**
-     * Delete key in the Unexpected Keyboard style: a big backspace in the middle and small icons on
-     * each side showing the swipe directions (word back, word forward, letter forward, line back).
+     * Delete key in the Unexpected Keyboard style: a big backspace in the middle and small icons in
+     * the corners showing the swipes (word back, word forward, line back, letter forward).
      */
     private fun drawDelete(canvas: Canvas, r: RectF, color: Int, pressed: Boolean) {
         val cx = r.centerX()
@@ -321,31 +321,40 @@ class KeyboardView(context: Context, private val listener: Listener) : View(cont
         canvas.drawPath(path, strokePaint)
         drawCross(canvas, cx + h * 0.2f, cy, h * 0.2f, if (pressed) theme.key else color)
 
+        // Corner icons, matching DeleteGestureTracker: backwards on the left, forwards on the right.
         strokePaint.strokeWidth = dp(1f)
         val sw = dp(12f)
         val sh = dp(9f)
+        val inset = dp(4f)
         val hint = theme.hint
         strokePaint.color = hint
-        val leftX = r.left + dp(3f) + sw / 2
-        tagPath(leftX, cy, sw, sh, pointLeft = true)
-        canvas.drawPath(path, strokePaint)
-        drawLabel(canvas, "W", leftX + sh * 0.15f, cy, sp(6.5f), hint, bold = true)
+        val topY = r.top + inset + sh / 2
+        val botY = r.bottom - inset - sh / 2
 
-        val rightX = r.right - dp(3f) - sw / 2
-        tagPath(rightX, cy, sw, sh, pointLeft = false)
+        // Top-left: word back.
+        val leftX = r.left + inset + sw / 2
+        tagPath(leftX, topY, sw, sh, pointLeft = true)
         canvas.drawPath(path, strokePaint)
-        drawLabel(canvas, "W", rightX - sh * 0.15f, cy, sp(6.5f), hint, bold = true)
+        drawLabel(canvas, "W", leftX + sh * 0.15f, topY, sp(6.5f), hint, bold = true)
 
-        val topY = r.top + dp(6.5f)
-        tagPath(cx, topY, dp(11f), dp(8f), pointLeft = false)
+        // Top-right: word forward.
+        val rightX = r.right - inset - sw / 2
+        tagPath(rightX, topY, sw, sh, pointLeft = false)
         canvas.drawPath(path, strokePaint)
-        drawCross(canvas, cx - dp(1.2f), topY, dp(1.6f), hint)
+        drawLabel(canvas, "W", rightX - sh * 0.15f, topY, sp(6.5f), hint, bold = true)
 
-        val botY = r.bottom - dp(6.5f)
-        canvas.drawLine(cx - dp(5f), botY - dp(3.5f), cx - dp(5f), botY + dp(3.5f), strokePaint)
-        canvas.drawLine(cx - dp(3.5f), botY, cx + dp(5f), botY, strokePaint)
-        canvas.drawLine(cx - dp(3.5f), botY, cx - dp(1f), botY - dp(2.5f), strokePaint)
-        canvas.drawLine(cx - dp(3.5f), botY, cx - dp(1f), botY + dp(2.5f), strokePaint)
+        // Bottom-right: letter forward.
+        val fwdX = r.right - inset - dp(5.5f)
+        tagPath(fwdX, botY, dp(11f), dp(8f), pointLeft = false)
+        canvas.drawPath(path, strokePaint)
+        drawCross(canvas, fwdX - dp(1.2f), botY, dp(1.6f), hint)
+
+        // Bottom-left: back to the start of the line (|←).
+        val lx = r.left + inset + dp(1f)
+        canvas.drawLine(lx, botY - dp(3.5f), lx, botY + dp(3.5f), strokePaint)
+        canvas.drawLine(lx + dp(1.5f), botY, lx + dp(10f), botY, strokePaint)
+        canvas.drawLine(lx + dp(1.5f), botY, lx + dp(4f), botY - dp(2.5f), strokePaint)
+        canvas.drawLine(lx + dp(1.5f), botY, lx + dp(4f), botY + dp(2.5f), strokePaint)
         strokePaint.strokeWidth = oldWidth
     }
 
