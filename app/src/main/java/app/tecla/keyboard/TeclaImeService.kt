@@ -271,7 +271,7 @@ class TeclaImeService :
             KeyAction.Fn -> page = if (page == KeyboardPage.FN) KeyboardPage.LETTERS else KeyboardPage.FN
             KeyAction.Emoji -> showEmoji(true)
             KeyAction.Settings -> openSettings()
-            KeyAction.SwitchKeyboard -> switchKeyboard()
+            KeyAction.SwitchKeyboard -> showPicker()
             KeyAction.Shift, KeyAction.Delete, KeyAction.Gap -> Unit
         }
         render()
@@ -400,14 +400,6 @@ class TeclaImeService :
         }
         val n = length(before)
         if (n > 0) ic.deleteSurroundingText(n, 0)
-    }
-
-    private fun switchKeyboard() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            if (!switchToNextInputMethod(false)) showPicker()
-        } else {
-            showPicker()
-        }
     }
 
     override fun onShowKeyboardPicker() = showPicker()
