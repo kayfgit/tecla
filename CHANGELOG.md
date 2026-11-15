@@ -31,6 +31,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 - tecla is now licensed under the GNU GPL v3 or later (GPL-3.0-or-later), copyright Kayf.
+- Delete swipes use the corners, like the letter keys: top-left deletes a
+  word back, top-right a word forward, bottom-left back to the line start
+  and bottom-right a letter forward.
+- The keyboard corner on the Fn key opens the keyboard picker instead of
+  jumping straight to the next keyboard.
 - Targets Android 17 (API 37). Builds with Android Gradle Plugin 9.5.1
   (built-in Kotlin), Gradle 9.9.0 and ktlint Gradle plugin 14.2.0.
 - On Android 15 and later the keyboard fills the area behind the navigation
